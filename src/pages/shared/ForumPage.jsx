@@ -1,53 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
+import { Send, ArrowLeft, Trash2 } from 'lucide-react'; // npm i lucide-react
 
 // ==========================================
-// SHARED COMMUNITY FORUM PAGE
+// SHARED COMMUNITY FORUM PAGE - MESSENGER STYLE
 // ==========================================
 function ForumPage() {
   const navigate = useNavigate();
   const { userRole, userData, currentUser } = useAuth();
+  const chatEndRef = useRef(null); // auto scroll to bottom
 
-  // Role-Based Access Control configuration
   const canPost = userRole === 'soloparent';
   const canModerate = ['admin', 'staff'].includes(userRole);
-  
-  // Only the author or a moderator can delete a post/reply
-  const canDelete = (authorId) => {
-    return canModerate || authorId === currentUser?.uid;
-  };
+  const canDelete = (authorId) => { return canModerate || authorId === currentUser?.uid; };
 
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
   const [replies, setReplies] = useState([]);
-
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [newThreadBody, setNewThreadBody] = useState('');
   const [newReplyBody, setNewReplyBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Auto scroll pag may bagong reply
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [replies]);
 
   // Fetch Threads in real-time
   useEffect(() => {
     const q = query(collection(db, 'forum_threads'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const threadData = [];
-      snapshot.forEach(doc => threadData.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach(doc => threadData.push({ id: doc.id,...doc.data() }));
       setThreads(threadData);
     });
     return () => unsubscribe();
   }, []);
 
-  // Fetch Replies in real-time when a thread is selected
+  // Fetch Replies in real-time
   useEffect(() => {
     if (!selectedThread) return;
-    
     const q = query(collection(db, 'forum_threads', selectedThread.id, 'replies'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const reps = [];
-      snapshot.forEach(doc => reps.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach(doc => reps.push({ id: doc.id,...doc.data() }));
       setReplies(reps);
     });
     return () => unsubscribe();
@@ -55,9 +55,8 @@ function ForumPage() {
 
   const handleCreateThread = async (e) => {
     e.preventDefault();
-    if (!canPost) return;
+    if (!canPost ||!newThreadTitle.trim()) return;
     setIsSubmitting(true);
-    
     try {
       await addDoc(collection(db, 'forum_threads'), {
         title: newThreadTitle,
@@ -68,19 +67,14 @@ function ForumPage() {
       });
       setNewThreadTitle('');
       setNewThreadBody('');
-    } catch (error) {
-      console.error("Error creating thread:", error);
-      alert("Failed to create thread.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { alert("Failed to create thread."); }
+    finally { setIsSubmitting(false); }
   };
 
   const handleCreateReply = async (e) => {
     e.preventDefault();
-    if (!canPost || !selectedThread) return;
+    if (!canPost ||!selectedThread ||!newReplyBody.trim()) return;
     setIsSubmitting(true);
-    
     try {
       await addDoc(collection(db, 'forum_threads', selectedThread.id, 'replies'), {
         body: newReplyBody,
@@ -89,134 +83,125 @@ function ForumPage() {
         createdAt: new Date().toISOString()
       });
       setNewReplyBody('');
-    } catch (error) {
-      console.error("Error creating reply:", error);
-      alert("Failed to post reply.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (error) { alert("Failed to post reply."); }
+    finally { setIsSubmitting(false); }
   };
 
   const handleDeleteThread = async (threadId, threadAuthorId) => {
     if (!canDelete(threadAuthorId)) return;
-    if (!window.confirm("Are you sure you want to delete this thread?")) return;
-    
+    if (!window.confirm("Delete this thread?")) return;
     try {
       await deleteDoc(doc(db, 'forum_threads', threadId));
-      if (selectedThread && selectedThread.id === threadId) {
-        setSelectedThread(null);
-      }
-    } catch (error) {
-      console.error("Error deleting thread:", error);
-      alert("Failed to delete thread.");
-    }
+      if (selectedThread && selectedThread.id === threadId) setSelectedThread(null);
+    } catch (error) { alert("Failed to delete thread."); }
   };
 
   const handleDeleteReply = async (replyId, replyAuthorId) => {
     if (!canDelete(replyAuthorId)) return;
-    if (!window.confirm("Are you sure you want to delete this reply?")) return;
-    
-    try {
-      await deleteDoc(doc(db, 'forum_threads', selectedThread.id, 'replies', replyId));
-    } catch (error) {
-      console.error("Error deleting reply:", error);
-      alert("Failed to delete reply.");
+    try { 
+      await deleteDoc(doc(db, 'forum_threads', selectedThread.id, 'replies', replyId)); 
+    } catch (error) { 
+      alert("Failed to delete reply."); 
     }
   };
+    // <-- KULANG DITO NG }
 
-  const formatDate = (isoString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(isoString).toLocaleDateString(undefined, options);
-  };
+    const formatDate = (isoString) => {
+      if (!isoString) return "";
+      const date = isoString.toDate ? isoString.toDate() : new Date(isoString);
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000 / 60);
+      if (diff < 1) return "Just now";
+      if (diff < 60) return `${diff}m ago`;
+      if (diff < 1440) return `${Math.floor(diff/60)}h ago`;
+      return date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+    };
 
   const styles = {
-    body: { fontFamily: 'Arial, sans-serif', background: '#f8fafc', minHeight: '100vh', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-    container: { maxWidth: '800px', width: '100%' },
-    headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-    title: { color: '#1e3a8a', fontSize: '28px', fontWeight: '900', margin: 0 },
-    backBtn: { background: '#e2e8f0', color: '#334155', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-    
-    card: { background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' },
-    metaText: { fontSize: '13px', color: '#64748b', marginBottom: '10px' },
-    threadTitle: { margin: '0 0 10px 0', color: '#1e3a8a', fontSize: '20px', fontWeight: 'bold' },
-    threadBody: { color: '#334155', fontSize: '15px', lineHeight: '1.6', whiteSpace: 'pre-wrap', margin: 0 },
-    
-    formGroup: { marginBottom: '15px' },
-    input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px' },
-    textarea: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing: 'border-box', fontSize: '14px', minHeight: '100px', resize: 'vertical', fontFamily: 'Arial' },
-    submitBtn: { background: '#fbbf24', color: '#1e3a8a', padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '15px' },
-    
-    deleteBtn: { background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', padding: 0, marginTop: '10px' },
-    viewBtn: { background: '#f1f5f9', color: '#1e3a8a', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' },
-    
-    replyCard: { background: '#f8fafc', borderRadius: '8px', padding: '16px', marginBottom: '10px', borderLeft: '4px solid #1e3a8a' },
-    replyBody: { color: '#334155', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', margin: '5px 0' },
+    container: { maxWidth: '700px', margin: '0 auto', background: '#F8FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column' },
+    header: { padding: '16px 24px', background: 'white', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 },
+    backBtn: { background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', display: 'flex', color: '#1E3A8A' },
+    title: { fontSize: '18px', fontWeight: 'bold', color: '#1E3A8A', margin: 0 },
+    chatList: { flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' },
+    chatBubble: { background: 'white', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0', position: 'relative' },
+    myBubble: { background: '#DBEAFE', borderColor: '#BFDBFE', alignSelf: 'flex-end' },
+    chatHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px' },
+    chatName: { fontWeight: 'bold', color: '#1E3A8A', fontSize: '14px' },
+    chatTime: { fontSize: '12px', color: '#64748B' },
+    chatMessage: { fontSize: '14px', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' },
+    inputArea: { padding: '12px 16px', background: 'white', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '8px', position: 'sticky', bottom: 0 },
+    input: { flex: 1, padding: '12px 16px', borderRadius: '20px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '14px' },
+    sendBtn: { background: '#1E3A8A', color: 'white', border: 'none', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+    deleteBtn: { position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626' },
+    threadCard: { background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', cursor: 'pointer' },
+    empty: { textAlign: 'center', color: '#64748B', padding: '40px 0' },
+    formCard: { background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '16px' }
   };
-
-  // ==========================================
-  // RENDER: THREAD DETAIL VIEW
+// ==========================================
+  // RENDER: THREAD DETAIL / CHAT VIEW
   // ==========================================
   if (selectedThread) {
     return (
-      <div style={styles.body} className="anim-fade-in">
-        <div style={styles.container}>
-          <div style={styles.headerRow}>
-            <button style={styles.backBtn} className="hover-btn" onClick={() => setSelectedThread(null)}>← Back to Threads</button>
-            <h2 style={styles.title}>Discussion</h2>
-          </div>
+      <div style={styles.container} className="anim-fade-in">
+        {/* HEADER */}
+        <div style={styles.header}>
+          <button style={styles.backBtn} onClick={() => setSelectedThread(null)}>
+            <ArrowLeft size={20}/>
+          </button>
+          <h2 style={styles.title}>{selectedThread.title}</h2>
+          <div style={{width: '36px'}}></div> {/* spacer */}
+        </div>
 
-          {/* Original Post */}
-          <div style={styles.card} className="anim-slide-up">
-            <div style={styles.metaText}>
-              <strong>{selectedThread.authorName}</strong> • {formatDate(selectedThread.createdAt)}
+        {/* CHAT LIST */}
+        <div style={styles.chatList}>
+          {/* ORIGINAL POST */}
+          <div style={{...styles.chatBubble, ...(selectedThread.authorId === currentUser?.uid ? styles.myBubble : {})}}>
+            <div style={styles.chatHeader}>
+              <span style={styles.chatName}>{selectedThread.authorName}</span>
+              <span style={styles.chatTime}>{formatDate(selectedThread.createdAt)}</span>
             </div>
-            <h3 style={styles.threadTitle}>{selectedThread.title}</h3>
-            <p style={styles.threadBody}>{selectedThread.body}</p>
+            <div style={styles.chatMessage}>{selectedThread.body}</div>
             {canDelete(selectedThread.authorId) && (
-              <button style={styles.deleteBtn} className="hover-btn" onClick={() => handleDeleteThread(selectedThread.id, selectedThread.authorId)}>
-                Delete Thread
+              <button style={styles.deleteBtn} onClick={() => handleDeleteThread(selectedThread.id, selectedThread.authorId)}>
+                <Trash2 size={14}/>
               </button>
             )}
           </div>
 
-          {/* Replies Section */}
-          <h3 style={{ color: '#1e3a8a', margin: '30px 0 15px 0', fontSize: '20px' }}>Replies ({replies.length})</h3>
-          
+          {/* REPLIES */}
           {replies.map((reply) => (
-            <div key={reply.id} style={styles.replyCard} className="anim-slide-up">
-              <div style={styles.metaText}>
-                <strong>{reply.authorName}</strong> • {formatDate(reply.createdAt)}
+            <div key={reply.id} style={{...styles.chatBubble, ...(reply.authorId === currentUser?.uid ? styles.myBubble : {})}}>
+              <div style={styles.chatHeader}>
+                <span style={styles.chatName}>{reply.authorName}</span>
+                <span style={styles.chatTime}>{formatDate(reply.createdAt)}</span>
               </div>
-              <p style={styles.replyBody}>{reply.body}</p>
+              <div style={styles.chatMessage}>{reply.body}</div>
               {canDelete(reply.authorId) && (
-                <button style={styles.deleteBtn} className="hover-btn" onClick={() => handleDeleteReply(reply.id, reply.authorId)}>
-                  Delete Reply
+                <button style={styles.deleteBtn} onClick={() => handleDeleteReply(reply.id, reply.authorId)}>
+                  <Trash2 size={14}/>
                 </button>
               )}
             </div>
           ))}
-
-          {/* Reply Form (Only Solo Parents) */}
-          {canPost && (
-            <div style={{ ...styles.card, marginTop: '20px' }} className="anim-slide-up">
-              <h4 style={{ margin: '0 0 15px 0', color: '#1e3a8a' }}>Leave a Reply</h4>
-              <form onSubmit={handleCreateReply}>
-                <div style={styles.formGroup}>
-                  <textarea 
-                    style={styles.textarea} 
-                    value={newReplyBody} 
-                    onChange={(e) => setNewReplyBody(e.target.value)} 
-                    required 
-                    placeholder="Type your reply here..." 
-                  />
-                </div>
-                <button type="submit" style={{...styles.submitBtn, opacity: isSubmitting ? 0.7 : 1}} className="hover-btn" disabled={isSubmitting}>
-                  {isSubmitting ? 'Posting...' : 'Post Reply'}
-                </button>
-              </form>
-            </div>
-          )}
+          <div ref={chatEndRef} /> {/* auto scroll target */}
         </div>
+
+        {/* INPUT BOX - MESSENGER STYLE. Solo Parent lang pwede mag reply */}
+        {canPost && (
+          <form style={styles.inputArea} onSubmit={handleCreateReply}>
+            <input 
+              type="text"
+              style={styles.input}
+              placeholder="Write a reply..."
+              value={newReplyBody}
+              onChange={(e) => setNewReplyBody(e.target.value)}
+              disabled={isSubmitting}
+            />
+            <button type="submit" style={{...styles.sendBtn, opacity: isSubmitting ? 0.6 : 1}} disabled={isSubmitting}>
+              <Send size={20}/>
+            </button>
+          </form>
+        )}
       </div>
     );
   }
@@ -225,80 +210,60 @@ function ForumPage() {
   // RENDER: THREAD LIST VIEW
   // ==========================================
   return (
-    <div style={styles.body} className="anim-fade-in">
-      <div style={styles.container}>
-        
-        <div style={styles.headerRow}>
-          <button style={styles.backBtn} className="hover-btn" onClick={() => navigate(-1)}>← Back</button>
-          <h2 style={styles.title}>Community Forum</h2>
-          <div style={{ width: '80px' }}></div>
-        </div>
+    <div style={styles.container} className="anim-fade-in">
+      {/* HEADER */}
+      <div style={styles.header}>
+        <button style={styles.backBtn} onClick={() => navigate(-1)}>
+          <ArrowLeft size={20}/>
+        </button>
+        <h2 style={styles.title}>Community Forum</h2>
+        <div style={{width: '36px'}}></div>
+      </div>
 
-        {/* Create Thread Form (Only Solo Parents) */}
+      <div style={{padding: '16px', overflowY: 'auto', flex: 1}}>
+        {/* CREATE THREAD FORM - SOLO PARENT LANG */}
         {canPost && (
-          <div style={styles.card} className="anim-slide-up">
-            <h3 style={{ margin: '0 0 15px 0', color: '#1e3a8a', fontSize: '18px' }}>Start a New Discussion</h3>
+          <div style={styles.formCard}>
+            <h3 style={{margin: '0 0 12px 0', color: '#1E3A8A', fontSize: '16px'}}>Start New Discussion</h3>
             <form onSubmit={handleCreateThread}>
-              <div style={styles.formGroup}>
-                <input 
-                  type="text" 
-                  style={styles.input} 
-                  value={newThreadTitle} 
-                  onChange={(e) => setNewThreadTitle(e.target.value)} 
-                  required 
-                  placeholder="Thread Title" 
-                />
-              </div>
-              <div style={styles.formGroup}>
-                <textarea 
-                  style={styles.textarea} 
-                  value={newThreadBody} 
-                  onChange={(e) => setNewThreadBody(e.target.value)} 
-                  required 
-                  placeholder="What's on your mind?" 
-                />
-              </div>
-              <button type="submit" style={{...styles.submitBtn, opacity: isSubmitting ? 0.7 : 1}} className="hover-btn" disabled={isSubmitting}>
+              <input 
+                type="text"
+                style={{...styles.input, marginBottom: '10px'}}
+                placeholder="Thread Title"
+                value={newThreadTitle}
+                onChange={(e) => setNewThreadTitle(e.target.value)}
+                required
+              />
+              <textarea 
+                style={{...styles.input, minHeight: '80px', resize: 'vertical', borderRadius: '12px'}}
+                placeholder="What's on your mind?"
+                value={newThreadBody}
+                onChange={(e) => setNewThreadBody(e.target.value)}
+              />
+              <button type="submit" style={{...styles.sendBtn, width: '100%', borderRadius: '8px', marginTop: '10px'}} disabled={isSubmitting}>
                 {isSubmitting ? 'Posting...' : 'Post Discussion'}
               </button>
             </form>
           </div>
         )}
 
-        {/* Thread Feed */}
+        {/* THREAD LIST */}
         {threads.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', background: 'white', borderRadius: '12px', color: '#64748b' }}>
-            No discussions found. Be the first to start one!
-          </div>
+          <p style={styles.empty}>No discussions yet. Be the first! 💬</p>
         ) : (
           threads.map((thread) => (
-            <div key={thread.id} style={{...styles.card, display: 'flex', flexDirection: 'column'}} className="hover-card anim-slide-up">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.metaText}>
-                    <strong>{thread.authorName}</strong> • {formatDate(thread.createdAt)}
-                  </div>
-                  <h3 style={styles.threadTitle}>{thread.title}</h3>
-                  <p style={{ ...styles.threadBody, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {thread.body}
-                  </p>
-                </div>
+            <div key={thread.id} style={styles.threadCard} className="hover-card" onClick={() => setSelectedThread(thread)}>
+              <div style={styles.chatHeader}>
+                <span style={styles.chatName}>{thread.authorName}</span>
+                <span style={styles.chatTime}>{formatDate(thread.createdAt)}</span>
               </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
-                <button style={styles.viewBtn} className="hover-btn" onClick={() => setSelectedThread(thread)}>
-                  View Discussion
-                </button>
-                {canDelete(thread.authorId) && (
-                  <button style={styles.deleteBtn} className="hover-btn" onClick={() => handleDeleteThread(thread.id, thread.authorId)}>
-                    Delete Thread
-                  </button>
-                )}
-              </div>
+              <h4 style={{margin: '8px 0', color: '#1E3A8A', fontSize: '16px'}}>{thread.title}</h4>
+              <p style={{...styles.chatMessage, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
+                {thread.body}
+              </p>
             </div>
           ))
         )}
-
       </div>
     </div>
   );

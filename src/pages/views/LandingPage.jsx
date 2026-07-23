@@ -166,6 +166,7 @@ function LandingPage() {
   const { userRole, userData } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
 
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroConfig.backgroundImages.length);
@@ -183,7 +184,7 @@ function LandingPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  
+
 
   // Securely redirect based on AuthContext state
   useEffect(() => {
@@ -241,33 +242,33 @@ function LandingPage() {
     navContainer: { display: 'flex', gap: '35px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', flex: 1, flexDirection: 'row', position: 'relative' },
     mobileMenuBtn: { display: 'none', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#1e3a8' },
     navItem: { position: 'relative', cursor: 'pointer', color: '#1e3a8a', fontWeight: 'bold', fontSize: '14px', padding: '10px 12px', userSelect: 'none' },
-    dropdownMenu: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '250px', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', scrollbarWidth: 'none', zIndex: 1000, whiteSpace: 'normal'},   
-    dropdownMenuRight: { position: 'absolute', top: '100%', right: '0', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '500px',  maxWidth: '90vw', zIndex: 1000, whiteSpace: 'normal' },
+    dropdownMenu: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '250px', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', scrollbarWidth: 'none', zIndex: 1000, whiteSpace: 'normal' },
+    dropdownMenuRight: { position: 'absolute', top: '100%', right: '0', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '500px', maxWidth: '90vw', zIndex: 1000, whiteSpace: 'normal' },
     dropdownMenuRightWide: { position: 'absolute', top: '100%', right: '0', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 0', width: 'auto', minWidth: '850px', maxWidth: '95vw', maxHeight: '70vh', overflowY: 'auto', zIndex: 1000, whiteSpace: 'normal' },
     dropdownMenuCentered: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', minWidth: '280px', zIndex: 1000, whiteSpace: 'normal' },
-    cardContainer: {display: 'grid',gridTemplateColumns: '1fr 1fr' }, 
-    dropdownSection: {padding: '15px 20px',borderBottom: '1px solid rgba(255,255,255,0.1)',color: '#ffffff' },
-    videoPlaceholder: { background: '#94a3b8', height: '120px', borderRadius: '6px', display: 'flex',alignItems: 'center',justifyContent: 'center',color: '#1e293b',fontSize: '14px',marginTop: '10px',fontWeight: 'bold' },
-    placeholderText: {fontSize: '13px',margin: '5px 0 0 0',color: '#cbd5e1'},
-    imageCardPlaceholder: {background: '#f1f5f9',padding: '15px',borderRadius: '6px',color: '#334155'}, 
-    eventCard: {background: 'rgba(255,255,255,0.1)',padding: '15px',margin: '10px 15px',borderRadius: '6px',color: '#fffff'}, 
+    cardContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr' },
+    dropdownSection: { padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' },
+    videoPlaceholder: { background: '#94a3b8', height: '120px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e293b', fontSize: '14px', marginTop: '10px', fontWeight: 'bold' },
+    placeholderText: { fontSize: '13px', margin: '5px 0 0 0', color: '#cbd5e1' },
+    imageCardPlaceholder: { background: '#f1f5f9', padding: '15px', borderRadius: '6px', color: '#334155' },
+    eventCard: { background: 'rgba(255,255,255,0.1)', padding: '15px', margin: '10px 15px', borderRadius: '6px', color: '#fffff' },
     dropdownItem: { padding: '12px 20px', color: '#ffffff', fontSize: '14px', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', textAlign: 'left', whiteSpace: 'normal', wordWrap: 'break-word' },
     accordionContent: { marginTop: '12px', padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', borderLeft: '3px solid #fbbf24' },
     navButtons: { display: 'flex', gap: '10px', minWidth: 'max-content' },
-    navItemWhite: { color: '#fff', fontSize: '15px', fontWeight: '700', cursor: 'pointer', position: 'relative',  padding: '15px 20px',  transition: 'opacity 0.2s', display: 'block' },
-    main: {flex: 1,display: 'flex',flexDirection: 'column',justifyContent: 'center',alignItems: 'center',padding: '0',zIndex: 1,position: 'relative'},
-    heroTitle: {color: '#1e3a8a',fontSize: '48px',fontWeight: '900',marginBottom: '20px'},
-    heroSub: {color: '#475569',fontSize: '18px',maxWidth: '600px',marginBottom: '40px',lineHeight: '1.6'},
+    navItemWhite: { color: '#fff', fontSize: '15px', fontWeight: '700', cursor: 'pointer', position: 'relative', padding: '15px 20px', transition: 'opacity 0.2s', display: 'block' },
+    main: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0', zIndex: 1, position: 'relative' },
+    heroTitle: { color: '#1e3a8a', fontSize: '48px', fontWeight: '900', marginBottom: '20px' },
+    heroSub: { color: '#475569', fontSize: '18px', maxWidth: '600px', marginBottom: '40px', lineHeight: '1.6' },
     btnGroup: { display: 'flex', gap: '20px', justifyContent: 'center' },
-    btnPrimary: { background: '#fbbf24', color: '#1e3a8a', padding: '15px 40px',borderRadius: '8px',textDecoration: 'none',fontWeight: 'bold',border: 'none',cursor: 'pointer',fontSize: '18px',boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-    btnSecondary: {background: '#ffffff',color: '#1e3a8a',padding: '15px 40px',borderRadius: '8px',textDecoration: 'none',fontWeight: 'bold',border: '2px solid #1e3a8a',cursor: 'pointer',fontSize: '18px' },
+    btnPrimary: { background: '#fbbf24', color: '#1e3a8a', padding: '15px 40px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '18px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+    btnSecondary: { background: '#ffffff', color: '#1e3a8a', padding: '15px 40px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: '2px solid #1e3a8a', cursor: 'pointer', fontSize: '18px' },
     infoBox: { background: '#f8fafc', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #fbbf24', margin: '10px', textAlign: 'left', color: '#334155', fontSize: '14px', lineHeight: '1.6' }
   };
 
   return (
     <div style={styles.body} className="anim-fade-in landing-page-wrapper">
 
-<style>{`
+      <style>{`
   /* ===== MOBILE RESPONSIVE FIX ===== */
   @media (max-width: 980px) {
     body { overflow-x: hidden !important; }
@@ -508,226 +509,219 @@ function LandingPage() {
             />
           ))}
         </div>
-
-
-        {/* DITO NA YUNG CONTENT PARA MAGSCROLL */}
-        <div style={{ padding: '60px', background: '#fff', minHeight: '100vh' }}>
-          <h2 style={{ textAlign: 'center', color: '#1e3a8a', fontSize: '32px', marginBottom: '20px' }}>Programs and Services</h2>
-          <p style={{ textAlign: 'center', color: '#555' }}>Ilagay mo dito lahat ng sections mo. About, Contact, etc.</p>
-
-          <br /><br /><br /><br /><br /> {/* TEST LANG TO PARA MAKITA NATIN SCROLL */}
-          <p>Scroll test...</p>
-          <br /><br /><br /><br /><br />
-
-        </div>
-
       </main>
 
       {showLoginModal && (
-  <div style={{
-    position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: 'rgba(0,0,0,0.7)',
-    backdropFilter: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    padding: '20px'
-  }} onClick={() => setShowLoginModal(false)}>
-    
-    <div style={{
-      background: 'rgba(255, 255, 255, 0.95)', // WHITE GLASS NA
-      backdropFilter: 'blur(25px)',
-      borderRadius: '24px',
-      padding: '45px 40px',
-      width: '100%',
-      maxWidth: '440px',
-      boxShadow: '0 25px 70px rgba(0,0,0,0.4)',
-      border: '1px solid rgba(37, 99, 235, 0.2)', // blue border
-      position: 'relative'
-    }} onClick={(e) => e.stopPropagation()}>
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setShowLoginModal(false)}>
 
-      {/* CLOSE BUTTON */}
-      <button style={{
-        position: 'absolute',
-        top: '20px',
-        right: '20px',
-        background: 'rgba(0,0,0,0.05)',
-        border: 'none',
-        borderRadius: '50%',
-        width: '36px',
-        height: '36px',
-        cursor: 'pointer',
-        color: '#1e40af', // BLUE
-        fontSize: '20px',
-        fontWeight: 'bold',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.2s'
-      }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
-         onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-         onClick={() => setShowLoginModal(false)}>✕</button>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)', // WHITE GLASS NA
+            backdropFilter: 'blur(25px)',
+            borderRadius: '24px',
+            padding: '45px 40px',
+            width: '100%',
+            maxWidth: '440px',
+            boxShadow: '0 25px 70px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(37, 99, 235, 0.2)', // blue border
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
 
-      {/* TITLE */}
-      <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-        <h2 style={{ 
-          color: '#1e40af', // BLUE
-          fontSize: '32px', 
-          fontWeight: '800', 
-          marginBottom: '8px'
-        }}>Welcome Back</h2>
-      </div>
+            {/* CLOSE BUTTON */}
+            <button style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(0,0,0,0.05)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '36px',
+              height: '36px',
+              cursor: 'pointer',
+              color: '#1e40af', // BLUE
+              fontSize: '20px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s'
+            }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+              onClick={() => setShowLoginModal(false)}>✕</button>
 
-      <form onSubmit={handleLogin}>
-        {/* EMAIL - FLOATING LABEL */}
-        <div style={{ marginBottom: '22px', position: 'relative' }}>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)}
-            required 
-            style={{ 
-              width: '100%', 
-              padding: '18px 18px 10px 18px', 
-              borderRadius: '14px', 
-              border: '2px solid #e2e8f0', 
-              fontSize: '15px', 
-              outline: 'none',
-              background: '#f8fafc',
-              color: '#1e293b', // BLACK TEXT
-              transition: 'all 0.3s'
-            }} 
-            onFocus={(e) => {e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'}}
-            onBlur={(e) => {e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'}}
-          />
-          <label style={{ 
-            position: 'absolute',
-            left: '18px',
-            top: email ? '8px' : '50%', // aakyat pag may laman
-            transform: email ? 'translateY(0)' : 'translateY(-50%)',
-            fontSize: email ? '12px' : '15px',
-            color: email ? '#2563eb' : '#64748b',
-            fontWeight: '600',
-            pointerEvents: 'none',
-            transition: 'all 0.2s ease'
-          }}>
-            Email Address
-          </label>
-        </div>
+            {/* TITLE */}
+            <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+              <h2 style={{
+                color: '#1e40af', // BLUE
+                fontSize: '32px',
+                fontWeight: '800',
+                marginBottom: '8px'
+              }}>Welcome Back</h2>
+            </div>
 
-        {/* PASSWORD - FLOATING LABEL */}
-        <div style={{ marginBottom: '12px', position: 'relative' }}>
-          <input 
-            type={showPassword ? "text" : "password"}
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)}
-            required 
-            style={{ 
-              width: '100%', 
-              padding: '18px 50px 10px 18px', 
-              borderRadius: '14px', 
-              border: '2px solid #e2e8f0', 
-              fontSize: '15px', 
-              outline: 'none',
-              background: '#f8fafc',
-              color: '#1e293b'
-            }} 
-            onFocus={(e) => {e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'}}
-            onBlur={(e) => {e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'}}
-          />
-          <label style={{ 
-            position: 'absolute',
-            left: '18px',
-            top: password ? '8px' : '50%',
-            transform: password ? 'translateY(0)' : 'translateY(-50%)',
-            fontSize: password ? '12px' : '15px',
-            color: password ? '#2563eb' : '#64748b',
-            fontWeight: '600',
-            pointerEvents: 'none',
-            transition: 'all 0.2s ease'
-          }}>
-            Password
-          </label>
-          
-          {/* EYE ICON */}
-          <span 
-            onClick={() => setShowPassword(!showPassword)} 
-            style={{ 
-              position: 'absolute', 
-              right: '16px', 
-              top: '50%',
-              transform: 'translateY(-50%)',
-              cursor: 'pointer', 
-              fontSize: '22px', 
-              userSelect: 'none',
-              transition: 'transform 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
-          >
-            {showPassword ? '👁️' : '🙈'}
-          </span>
-          
-          <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '14px', color: '#2563eb', cursor: 'pointer', fontWeight: '600' }} onClick={handleForgotPassword}>
-            Forgot Password?
+            <form onSubmit={handleLogin}>
+              {/* EMAIL - FLOATING LABEL */}
+              <div style={{ marginBottom: '22px', position: 'relative' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '18px 18px 10px 18px',
+                    borderRadius: '14px',
+                    border: '2px solid #e2e8f0',
+                    fontSize: '15px',
+                    outline: 'none',
+                    background: '#f8fafc',
+                    color: '#1e293b', // BLACK TEXT
+                    transition: 'all 0.3s'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff' }}
+                  onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc' }}
+                />
+                <label style={{
+                  position: 'absolute',
+                  left: '18px',
+                  top: email ? '8px' : '50%', // aakyat pag may laman
+                  transform: email ? 'translateY(0)' : 'translateY(-50%)',
+                  fontSize: email ? '12px' : '15px',
+                  color: email ? '#2563eb' : '#64748b',
+                  fontWeight: '600',
+                  pointerEvents: 'none',
+                  transition: 'all 0.2s ease'
+                }}>
+                  Email Address
+                </label>
+              </div>
+
+              {/* PASSWORD - FLOATING LABEL */}
+              <div style={{ marginBottom: '12px', position: 'relative' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '18px 50px 10px 18px',
+                    borderRadius: '14px',
+                    border: '2px solid #e2e8f0',
+                    fontSize: '15px',
+                    outline: 'none',
+                    background: '#f8fafc',
+                    color: '#1e293b'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff' }}
+                  onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc' }}
+                />
+                <label style={{
+                  position: 'absolute',
+                  left: '18px',
+                  top: password ? '8px' : '50%',
+                  transform: password ? 'translateY(0)' : 'translateY(-50%)',
+                  fontSize: password ? '12px' : '15px',
+                  color: password ? '#2563eb' : '#64748b',
+                  fontWeight: '600',
+                  pointerEvents: 'none',
+                  transition: 'all 0.2s ease'
+                }}>
+                  Password
+                </label>
+
+                {/* EYE ICON */}
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    cursor: 'pointer',
+                    fontSize: '22px',
+                    userSelect: 'none',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
+                >
+                  {showPassword ? '👁️' : '🙈'}
+                </span>
+
+                <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '14px', color: '#2563eb', cursor: 'pointer', fontWeight: '600' }} onClick={handleForgotPassword}>
+                  Forgot Password?
+                </div>
+              </div>
+
+              {/* BUTTON - YELLOW WITH HOVER */}
+              <button type="submit" style={{
+                background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)', // YELLOW
+                color: '#1e40af', // BLUE TEXT
+                padding: '16px',
+                border: 'none',
+                borderRadius: '14px',
+                fontSize: '17px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                width: '100%',
+                marginTop: '20px',
+                boxShadow: '0 8px 25px rgba(251,191,36,0.4)',
+                transition: 'all 0.2s'
+              }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 30px rgba(251,191,36,0.5)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(251,191,36,0.4)';
+                }}>
+                Login
+              </button>
+
+              <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
+                No account? <span style={{ color: '#2563eb', fontWeight: '700', cursor: 'pointer' }} onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}>Register here</span>
+              </div>
+            </form>
           </div>
         </div>
-
-        {/* BUTTON - YELLOW WITH HOVER */}
-        <button type="submit" style={{ 
-          background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)', // YELLOW
-          color: '#1e40af', // BLUE TEXT
-          padding: '16px', 
-          border: 'none', 
-          borderRadius: '14px', 
-          fontSize: '17px', 
-          fontWeight: '800', 
-          cursor: 'pointer', 
-          width: '100%', 
-          marginTop: '20px',
-          boxShadow: '0 8px 25px rgba(251,191,36,0.4)',
-          transition: 'all 0.2s'
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 12px 30px rgba(251,191,36,0.5)';
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 25px rgba(251,191,36,0.4)';
-        }}>
-          Login
-        </button>
-
-        <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
-          No account? <span style={{ color: '#2563eb', fontWeight: '700', cursor: 'pointer' }} onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}>Register here</span>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
+      )}
 
       {showRegisterModal && (
         <div
           style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', zIndex: 100,
-            display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-            padding: '40px 20px', overflowY: 'auto'
+            background: 'rgba(0,0,0,0.6)', zIndex: 9999, // GINAWANG 9999
+            display: 'flex', justifyContent: 'center', alignItems: 'center', // CENTER NA
+            padding: '20px', overflowY: 'auto'
           }}
           onClick={() => setShowRegisterModal(false)}
         >
           <div
-            style={{ width: '100%', maxWidth: '550px' }}
+            style={{
+              width: '100%',
+              maxWidth: '550px',
+              maxHeight: '90vh', // PARA SCROLLABLE PAG MAHABA
+              overflowY: 'auto',
+              background: '#fff', // PARA MAY PUTING BOX
+              borderRadius: '12px'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <PublicRegisterPage />
+            <PublicRegisterPage onClose={() => setShowRegisterModal(false)} /> {/* DAGDAG ONCLOSE */}
           </div>
         </div>
-      )}  {/* <-- ITO YUNG KULANG SAYO */}
-
+      )} {/* <-- ITO YUNG KULANG SAYO */}
 
     </div>
   );
