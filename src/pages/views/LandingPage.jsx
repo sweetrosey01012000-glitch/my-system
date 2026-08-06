@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -240,6 +240,17 @@ function LandingPage() {
     header: { background: '#ffffff', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderBottom: '4px solid #fbbf24', position: 'relative', zIndex: 10, flexWrap: 'wrap', flexDirection: 'row' },
     logoTitle: { color: '#1e3a8a', margin: 0, fontSize: '24px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 'max-content' },
     navContainer: { display: 'flex', gap: '35px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', flex: 1, flexDirection: 'row', position: 'relative' },
+    hamburgerBtn: {
+      display: 'none',
+      background: 'none',
+      border: 'none',
+      fontSize: '32px', /* ginawang mas malaki */
+      color: '#1e3a8a', /* blue para kita sa white header */
+      cursor: 'pointer',
+      padding: '5px 10px',
+      marginLeft: 'auto' /* para pumunta sa pinaka kanan */
+    },
+    navLinksMobileShow: { display: 'flex' },
     mobileMenuBtn: { display: 'none', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#1e3a8' },
     navItem: { position: 'relative', cursor: 'pointer', color: '#1e3a8a', fontWeight: 'bold', fontSize: '14px', padding: '10px 12px', userSelect: 'none' },
     dropdownMenu: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '250px', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', scrollbarWidth: 'none', zIndex: 1000, whiteSpace: 'normal' },
@@ -267,133 +278,129 @@ function LandingPage() {
 
   return (
     <div style={styles.body} className="anim-fade-in landing-page-wrapper">
-
+      
       <style>{`
-  /* ===== MOBILE RESPONSIVE FIX ===== */
-  @media (max-width: 980px) {
-    body { overflow-x: hidden !important; }
+      /* ===== MOBILE RESPONSIVE FIX - ISA LANG DAPAT ===== */
+      @media (max-width: 900px) {
+        body { overflow-x: hidden !important; }
+        
+        .main-header { 
+          flex-direction: row !important; 
+          justify-content: space-between !important;
+          padding: 8px 10px !important; /* NILIITAN */
+          align-items: center !important; 
+          gap: 6px !important; 
+          position: relative !important;
+          z-index: 1001 !important;
+          background: #fff !important;
+        }
+        .main-header img { width: 45px !important; height: 45px !important; } /* NILIITAN LOGO */
+  
+        /* LIITAN YUNG FONT SA HEADER */
+        .logoTitle h3 { font-size: 13px !important; margin: 0 !important; }
+        .logoTitle p:nth-of-type(1) { font-size: 8px !important; margin: 0 !important; }
+        .logoTitle p:nth-of-type(2) { font-size: 7px !important; margin: 0 !important; }
+  
+        /* PAGKASYAHIN YUNG KAN */
+        .headerRight {
+          display: flex !important;
+          align-items: center !important;
+          gap: 5px !important;
+        }
+        .navButtons { 
+          display: flex !important; /* PINAKITA ULIT SA HEADER */
+          gap: 5px !important;
+        }
+        .navButtons button {
+          padding: 5px 7px !important;
+          font-size: 10px !important;
+          font-weight: 700 !important;
+        }
+  
+        .hamburgerBtn { 
+          display: block !important; 
+          font-size: 24px !important; /* NILIITAN */
+          color: #1e3a8a !important; 
+          z-index: 1002 !important; 
+          background: none; 
+          border: none;
+          cursor: pointer;
+          padding: 0 3px;
+        }
+  
+        .main-nav { 
+          display: none !important; 
+          flex-direction: column !important; 
+          position: absolute;
+          top: 100%; 
+          left: 0; 
+          width: 100%; 
+          padding: 0 !important; 
+          gap: 0 !important; 
+          z-index: 1000; /* TATAKIP SA PICTURE */
+          background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%); 
+          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .main-nav.showMobile { display: flex !important; }
+        
+        .main-nav .nav-item { 
+          width: 100%; 
+          text-align: center; 
+          font-size: 15px !important; 
+          padding: 14px 10px !important; 
+          border-bottom: 1px solid rgba(255,255,255,0.1); 
+          color: white !important; 
+          cursor: pointer;
+        }
+        .nav-item-dropdown { position: relative !important; top: 0 !important; left: 0 !important; width: 100% !important; border-radius: 0 !important; }
+        .banner-img { width: 100% !important; height: 220px !important; object-fit: cover !important; object-position: center top !important; }
+      }
+      `}</style>
+  
+       {/* ===== HEADER PUTI ===== */}
+  <header className="main-header" style={{ background: '#ffffff', padding: '12px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'relative', }}>
     
-    /* HEADER - gawing pababa */
-    .main-header { 
-      flex-direction: column !important; 
-      padding: 15px 20px !important; 
-      align-items: center !important;
-      gap: 12px !important;
-      text-align: center !important;
-    }
-    .main-header img { width: 70px !important; height: 70px !important; }
-    .main-header > div:last-child { 
-      width: 100% !important; 
-      justify-content: center !important; 
-      gap: 10px !important;
-    }
+    {/* KALIWA: Logo + Text */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src={heroConfig.posterImg} alt="Solo Parent Logo" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
+      <div>
+        <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: '900' }}>SOLO PARENT SYSTEM</h3>
+        <p style={{ margin: 0, color: '#b45309', fontSize: '11px', fontWeight: '700' }}>DEPARTMENT OF SOCIAL WELFARE AND DEVELOPMENT</p>
+        <p style={{ margin: 0, color: '#64748b', fontSize: '10px' }}>Republic of the Philippines</p>
+      </div>
+    </div>
 
-    /* NAV - gawing wrap at center */
-    .main-nav {
-      flex-wrap: wrap !important;
-      justify-content: center !important;
-      padding: 10px 5px !important;
-      gap: 10px 15px !important;
-      height: auto !important; /* alisin yung 50px na fixed */
-    }
-    .main-nav .nav-item { 
-      font-size: 13px !important; 
-      padding: 6px 10px !important; 
-      white-space: nowrap !important;
-    }
+    {/* HAMBURGER BUTTON */}
+    <button className="hamburgerBtn" style={styles.hamburgerBtn} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+      ☰
+    </button>
 
-    /* DROPDOWN - full width sa mobile */
-    .nav-item-dropdown { 
-      position: fixed !important;
-      top: 170px !important; /* baba ng header+nav */
-      left: 0 !important;
-      width: 100% !important;
-      border-radius: 0 !important;
-      border-top: 3px solid #fbbf24 !important;
-      z-index: 9999 !important;
-      max-height: 70vh !important;
-      overflow-y: auto !important;
-    }
+    {/* KAN: Buttons lang */}
+    <div className="navButtons" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <button style={{ padding: '8px 18px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff', color: '#1e3a8a', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }} onClick={() => setShowLoginModal(true)}>
+        Log In
+      </button>
+      <button style={{ padding: '8px 18px', border: 'none', borderRadius: '6px', background: '#d97706', color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }} onClick={() => setShowRegisterModal(true)}>
+        Register
+      </button>
+    </div>
+  </header>
 
-    /* BANNER - fit sa screen */
-    .banner-img {
-      width: 100% !important;
-      height: 240px !important; /* binaba ko para di humaba */
-      object-fit: cover !important;
-      display: block !important;
-    }
-  }
-`}</style>
-      {/* ===== HEADER PUTI ===== */}
-      <header className="main-header" style={{
-        background: '#ffffff',
-        padding: '12px 60px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50
-      }}>
-
-
-        {/* KALIWA: Logo + Text */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img
-            src={heroConfig.posterImg}
-            alt="Solo Parent Logo"
-            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-          />
-          <div>
-            <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: '900' }}>SOLO PARENT SYSTEM</h3>
-            <p style={{ margin: 0, color: '#b45309', fontSize: '11px', fontWeight: '700' }}>DEPARTMENT OF SOCIAL WELFARE AND DEVELOPMENT</p>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '10px' }}>Republic of the Philippines</p>
-          </div>
-        </div>
-
-        {/* KAN: Buttons lang */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button style={{
-            padding: '8px 18px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            background: '#fff',
-            color: '#1e3a8a',
-            fontWeight: '700',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }} onClick={() => setShowLoginModal(true)}>
-            Log In
-          </button>
-
-          <button style={{
-            padding: '8px 18px',
-            border: 'none',
-            borderRadius: '6px',
-            background: '#d97706',
-            color: '#fff',
-            fontWeight: '700',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }} onClick={() => setShowRegisterModal(true)}>
-            Register
-          </button>
-        </div>
-      </header>
-
-      <nav className="main-nav" style={{
-        background: 'linear-gradient(90deg, #1e40af 0%, #2563eb 100%)', /* DARK BLUE GAYA SA PIC MO */
-        padding: '0 60px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '50px',
-        gap: '50px',
-        position: 'relative',
-        zIndex: 50,
-      }} onClick={() => setShowDropdown(null)}>
-
+  {/* ===== NAV BLUE - ISA LANG DAPAT TO ===== */}
+  <nav 
+    className={`main-nav ${isMobileMenuOpen ? 'showMobile' : ''}`} 
+    style={{ 
+      background: 'linear-gradient(90deg, #1e40af 0%, #2563eb 100%)', 
+      padding: '0 20px', 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      height: '50px', 
+      position: 'relative', // desktop
+      zIndex: 50, 
+    }} 
+    onClick={() => setShowDropdown(null)}
+  >
         <div className="nav-item" style={styles.navItemWhite} onClick={() => navigate('/')}>
           Home
         </div>

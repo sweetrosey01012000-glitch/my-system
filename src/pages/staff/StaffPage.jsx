@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase'; // ayusin mo path kung iba sayo
@@ -7,7 +7,7 @@ import { collection, getDocs, doc, updateDoc, query, where, orderBy, addDoc, del
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Menu, X, LayoutDashboard, FileText, Users, Megaphone, Wallet, BarChart3,
-  MessageSquare, Bell, ChevronDown, LogOut, Users2, FileClock
+  MessageSquare, Bell, ChevronDown, LogOut, Users2, FileClock, Download
 } from 'lucide-react';
 
 function StaffPage() {
@@ -19,11 +19,14 @@ function StaffPage() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   const [announcements, setAnnouncements] = useState([]);
-  const [editingAnnounce, setEditingAnnounce] = useState(null);
-  const [viewAnnounce, setViewAnnounce] = useState(null);
-  const [announceForm, setAnnounceForm] = useState({ title: '', content: '', author: userName, category: 'General' });
-  const [announceFile, setAnnounceFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [showAnnounceModal, setShowAnnounceModal] = useState(false);
+  const [announceForm, setAnnounceForm] = useState({ title: '', details: '', category: 'General', file: null });
+  const [selectedAnnounce, setSelectedAnnounce] = useState(null);
+  const [showAnnounceViewModal, setShowAnnounceViewModal] = useState(false);
+
+  const [parents, setParents] = useState([]);
+  const [reportType, setReportType] = useState('masterlist');
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,21 +64,15 @@ function StaffPage() {
     if (activeTab === 'records') fetchRecords();
     if (activeTab === 'announcements') fetchAnnouncements();
     if (activeTab === 'claims') fetchClaims();
+    if (activeTab === 'summary') fetchSummary();
   }, [activeTab, claimsTab]);
 
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      // 1. Total Solo Parents = sa 'soloparent' collection
       const totalSnap = await getDocs(collection(db, "soloparent"));
-
-      // 2. Pending Applications = sa 'pending_users' collection
       const pendingSnap = await getDocs(collection(db, "pending_users"));
-
-      // 3. New Claims = sa 'rsvps' collection. Palitan mo kung iba
       const claimsSnap = await getDocs(collection(db, "rsvps"));
-
-      // 4. Active Announcements = sa 'announcements' collection
       const announceSnap = await getDocs(collection(db, "announcements"));
 
       setDashboardStats({
@@ -211,7 +208,118 @@ function StaffPage() {
     fetchClaims();
   };
 
-  // STATUS COLOR
+  // ===== CREATE ANNOUNCEMENT FUNCTION =====
+  const handleCreateAnnouncement = async () => {
+    if (!announceForm.title || !announceForm.details) return alert("Fill up Title and Details");
+
+    await addDoc(collection(db, 'announcements'), {
+      title: announceForm.title,
+      details: announceForm.details,
+      category: announceForm.category,
+      status: 'Pending', // Para sa Admin approval
+      createdBy: userName,
+      createdAt: serverTimestamp(),
+      imageUrl: ''
+    });
+
+    // NOTIFY ADMIN
+    await addDoc(collection(db, 'notifications'), {
+      to: 'Admin',
+      message: `New Announcement: "${announceForm.title}" - Needs Approval`,
+      type: 'announcement',
+      read: false,
+      createdAt: serverTimestamp()
+    });
+
+    alert("Sent to Admin for Approval!");
+    setShowAnnounceModal(false);
+    setAnnounceForm({ title: '', details: '', category: 'General', file: null });
+    fetchAnnouncements(); // Refresh list
+  };
+  // ===== TAPOS =====
+
+  const fetchSummary = async () => {
+    setLoadingSummary(true);
+    try {
+      const snap = await getDocs(collection(db, "soloparent"));
+      const data = snap.docs.map(doc => {
+        const d = doc.data();
+        const age = d.dob ? new Date().getFullYear() - new Date(d.dob).getFullYear() : 0;
+        return {
+          id: doc.id,
+          ...d,
+          name: `${d.firstName || ''} ${d.lastName || ''}`,
+          age: age
+        };
+      });
+      setParents(data);
+    } catch (error) {
+      console.error("Error fetching parents:", error);
+    }
+    setLoadingSummary(false);
+  };
+
+  // SUMMARY COMPUTATIONS
+  const totalParents = parents.length;
+
+  const genderCount = parents.reduce((acc, p) => {
+    const gender = p.gender || 'Unknown';
+    acc[gender] = (acc[gender] || 0) + 1;
+    return acc;
+  }, {});
+
+  const ageGroups = parents.reduce((acc, p) => {
+    if (p.age <= 25) acc['18-25']++;
+    else if (p.age <= 35) acc['26-35']++;
+    else if (p.age <= 45) acc['36-45']++;
+    else if (p.age <= 60) acc['46-60']++;
+    else acc['60+']++;
+    return acc;
+  }, { '18-25': 0, '26-35': 0, '36-45': 0, '46-60': 0, '60+': 0 });
+
+  const barangayCount = parents.reduce((acc, p) => {
+    const brgy = p.barangay || 'Unknown';
+    acc[brgy] = (acc[brgy] || 0) + 1;
+    return acc;
+  }, {});
+
+
+  const thStyle = { padding: '12px', textAlign: 'left', fontWeight: '600', color: '#64748b', fontSize: '12px' };
+  const tdStyle = { padding: '12px' };
+
+  const getTableData = () => {
+    if (reportType === 'masterlist') {
+      return parents.map(p => ({
+        name: p.name, age: p.age > 0 ? p.age : 'N/A', gender: p.gender || 'N/A',
+        barangay: p.barangay || 'N/A', contact: p.contact || 'N/A',
+        children: p.childrenCount || 0, category: p.category || 'N/A'
+      }));
+    }
+    if (reportType === 'age') return Object.entries(ageGroups).map(([range, count]) => ({ 'Age Group': range, Count: count }));
+    if (reportType === 'gender') return parents.map(p => ({ Name: p.name, Gender: p.gender || 'N/A', Contact: p.contact || 'N/A' }));
+    if (reportType === 'barangay') return Object.entries(barangayCount).map(([brgy, count]) => ({ Barangay: brgy, Count: count }));
+    if (reportType === 'children') return parents.map(p => ({ Name: p.name, 'No. of Children': p.childrenCount || 0 }));
+    if (reportType === 'idstatus') return parents.map(p => {
+      const status = getIdStatus(p.registrationDate);
+      return { Name: p.name, 'Reg Date': p.registrationDate ? new Date(p.registrationDate).toLocaleDateString() : 'N/A', Status: status.label }
+    });
+    if (reportType === 'category') return parents.map(p => ({ Name: p.name, 'Category Code': p.category || 'N/A', Reason: p.reason || 'N/A' }));
+    return [];
+  };
+
+  const exportToCSV = () => {
+    const data = getTableData();
+    if (data.length === 0) return alert("No data to export");
+    const headers = Object.keys(data[0]).join(',');
+    const rows = data.map(obj => Object.values(obj).join(',')).join('\n');
+    const csv = headers + '\n' + rows;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${reportType}_report.csv`; a.click();
+  };
+
+  // STATUS COLOR[]
   const getStatusStyle = (status) => {
     if (status === 'Released') return { background: '#dcfce7', color: '#166534' };
     if (status === 'Processing') return { background: '#dbeafe', color: '#1e40af' };
@@ -267,7 +375,7 @@ function StaffPage() {
     { key: 'records', label: 'View Records', icon: Users },
     { key: 'announcements', label: 'Announcement', icon: Megaphone },
     { key: 'claims', label: 'Track Claims', icon: Wallet },
-    { key: 'reports', label: 'Generate Summary', icon: BarChart3 },
+    { key: 'summary', label: 'Summary Report', icon: BarChart3 },
   ];
 
   const styles = {
@@ -647,90 +755,118 @@ function StaffPage() {
             </div>
           )}
           {activeTab === 'announcements' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-              {/* NEW ANNOUNCEMENT FORM */}
-              <div style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 16px 0' }}>New Announcement</h3>
-
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Title</label>
-                <input type="text" placeholder="Enter announcement title" value={announceForm.title}
-                  onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })}
-                  style={{ width: '100%', padding: '10px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
-
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Details</label>
-                <textarea placeholder="Write announcement details..." value={announceForm.content}
-                  onChange={e => setAnnounceForm({ ...announceForm, content: e.target.value })}
-                  style={{ width: '100%', padding: '10px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', minHeight: '100px', boxSizing: 'border-box' }} />
-
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Category</label>
-                <select value={announceForm.category} onChange={e => setAnnounceForm({ ...announceForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }}>
-                  <option>General</option><option>Event</option><option>Livelihood</option><option>Urgent</option>
-                </select>
-
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569' }}>Image / Video</label>
-                <div style={{ border: '2px dashed #cbd5e1', borderRadius: '8px', padding: '20px', textAlign: 'center', marginBottom: '16px' }}>
-                  <input type="file" accept="image/*,video/*" onChange={handleAnnounceFile} style={{ display: 'none' }} id="announce-upload" />
-                  <label htmlFor="announce-upload" style={{ cursor: 'pointer', fontSize: '12px', color: '#64748b' }}>📤 Click to upload</label>
-                  {announceFile && <p style={{ fontSize: '12px', marginTop: '8px' }}>{announceFile.name}</p>}
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Announcements</h2>
+                  <p style={{ color: '#64748b', marginTop: '4px' }}>Submit announcements for Admin approval</p>
                 </div>
-
-                <button onClick={handleSubmitAnnouncement} disabled={uploading}
-                  style={{ width: '100%', padding: '12px', background: '#1e3a8a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-                  ✈️ {uploading ? 'Submitting...' : 'Submit to Admin'}
+                <button onClick={() => setShowAnnounceModal(true)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}>
+                  + Create Announcement
                 </button>
               </div>
 
-              {/* SUBMITTED ANNOUNCEMENTS LIST */}
-              <div style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', margin: '0 0 16px 0' }}>Submitted Announcements</h3>
-                {loading ? <p>Loading...</p> : announcements.length === 0 ? <p style={{ color: '#64748b' }}>No announcements yet</p> :
-                  announcements.map(item => (
-                    <div key={item.id} style={{ padding: '16px 0', borderBottom: '1px solid #f1f5f9' }}>
+              {/* LIST OF ANNOUNCEMENTS */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {announcements.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: '#94a3b8', padding: '40px' }}>No announcements yet</p>
+                ) : (
+                  announcements.map(ann => (
+                    <div key={ann.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>{item.title}</h4>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: '#eff6ff', color: '#1e40af' }}>{ann.category}</span>
                             <span style={{
-                              padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
-                              background: item.status === 'approved' ? '#dcfce7' : '#fef3c7',
-                              color: item.status === 'approved' ? '#16a34a' : '#92400e'
-                            }}>
-                              {item.status}
-                            </span>
+                              padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                              background: ann.status === 'Approved' ? '#dcfce7' : ann.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                              color: ann.status === 'Approved' ? '#14532d' : ann.status === 'Rejected' ? '#991b1b' : '#713f12'
+                            }}>{ann.status}</span>
                           </div>
-                          <p style={{ margin: '4px 0', fontSize: '12px', color: '#64748b' }}>{item.content?.substring(0, 120)}...</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item.date ? getTimeAgo(item.date) : 'Saving...'}</span>
-
-                          </div>
+                          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>{ann.title}</h3>
+                          <p style={{ margin: 0, color: '#64748b', fontSize: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ann.details}</p>
+                          <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '12px' }}>
+                            {ann.createdAt?.toDate ? ann.createdAt.toDate().toLocaleDateString() : 'N/A'} • By: {ann.createdBy}
+                          </p>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
-                          <button onClick={() => setViewAnnounce(item)} style={{ fontSize: '12px', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}>See full details</button>
-                          <button onClick={() => { setEditingAnnounce(item); setAnnounceForm(item) }} style={{ fontSize: '12px', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}>Edit</button>
-                          <button onClick={() => handleDeleteAnnounce(item.id)} style={{ fontSize: '12px', padding: '6px 10px', border: '1px solid #fecaca', background: '#fee2e2', color: '#dc2626', borderRadius: '6px', cursor: 'pointer' }}>Delete</button>
-                        </div>
+                        <button
+                          onClick={() => { setSelectedAnnounce(ann); setShowAnnounceViewModal(true); }}
+                          style={{ padding: '8px 14px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '12px', marginLeft: '12px' }}
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
 
-              {/* VIEW DETAILS MODAL */}
-              {viewAnnounce && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setViewAnnounce(null)}>
-                  <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '95%', maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
-                    <h3>{viewAnnounce.title}</h3>
-                    <p style={{ fontSize: '12px', color: '#64748b' }}>{viewAnnounce.category} | {viewAnnounce.status}</p>
-                    <p style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{viewAnnounce.content}</p>
-                    {viewAnnounce.fileType === 'image' && <img src={viewAnnounce.fileURL} style={{ width: '100%', borderRadius: '8px', marginTop: '16px' }} />}
-                    {viewAnnounce.fileType === 'video' && <video src={viewAnnounce.fileURL} controls style={{ width: '100%', borderRadius: '8px', marginTop: '16px' }} />}
-                    <button onClick={() => setViewAnnounce(null)} style={{ width: '100%', marginTop: '16px', padding: '10px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px' }}>Close</button>
+              {/* CREATE ANNOUNCEMENT MODAL */}
+              {showAnnounceModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                  <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                    <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Create New Announcement</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+                      <input type="text" placeholder="Title" value={announceForm.title} onChange={e => setAnnounceForm({ ...announceForm, title: e.target.value })} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px' }} />
+                      <textarea placeholder="Details" rows="4" value={announceForm.details} onChange={e => setAnnounceForm({ ...announceForm, details: e.target.value })} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }} />
+                      <select value={announceForm.category} onChange={e => setAnnounceForm({ ...announceForm, category: e.target.value })} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px' }}>
+                        <option value="General">General</option>
+                        <option value="Event">Event</option>
+                        <option value="Reminder">Reminder</option>
+                        <option value="Urgent">Urgent</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Distribution">Distribution</option>
+                      </select>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Upload Image/Video</label>
+                        <input type="file" onChange={e => setAnnounceForm({ ...announceForm, file: e.target.files[0] })} style={{ fontSize: '14px' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setShowAnnounceModal(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+                      <button onClick={handleCreateAnnouncement} style={{ padding: '10px 20px', border: 'none', borderRadius: '8px', background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: '600' }}>Send to Admin</button>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           )}
+          {/* VIEW ANNOUNCEMENT DETAILS MODAL */}
+          {showAnnounceViewModal && selectedAnnounce && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+              <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e293b' }}>Announcement Details</h3>
+                  <button onClick={() => setShowAnnounceViewModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>×</button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', background: '#eff6ff', color: '#1e40af' }}>{selectedAnnounce.category}</span>
+                  <span style={{
+                    padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                    background: selectedAnnounce.status === 'Approved' ? '#dcfce7' : selectedAnnounce.status === 'Rejected' ? '#fee2e2' : '#fef9c3',
+                    color: selectedAnnounce.status === 'Approved' ? '#14532d' : selectedAnnounce.status === 'Rejected' ? '#991b1b' : '#713f12'
+                  }}>{selectedAnnounce.status}</span>
+                </div>
+
+                <h2 style={{ margin: '0 0 12px 0', fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>{selectedAnnounce.title}</h2>
+
+                <p style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '16px' }}>
+                  {selectedAnnounce.createdAt?.toDate ? selectedAnnounce.createdAt.toDate().toLocaleString() : 'N/A'} • By: {selectedAnnounce.createdBy}
+                </p>
+
+                {selectedAnnounce.imageUrl && (
+                  <img src={selectedAnnounce.imageUrl} alt="Announcement" style={{ width: '100%', borderRadius: '8px', marginBottom: '16px' }} />
+                )}
+
+                <p style={{ color: '#334155', fontSize: '15px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{selectedAnnounce.details}</p>
+
+                <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setShowAnnounceViewModal(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', cursor: 'pointer', fontWeight: '600' }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}    
           {activeTab === 'claims' && (
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -913,7 +1049,94 @@ function StaffPage() {
               )}
             </div>
           )}
-          {activeTab === 'reports' && <div><h2>Generate Summary</h2></div>}
+
+          {activeTab === 'summary' && (
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Summary Report</h2>
+                  <p style={{ color: '#64748b', marginTop: '4px' }}>Filter and export solo parent data</p>
+                </div>
+                <button onClick={exportToCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>
+                  <Download size={16} /> Export CSV
+                </button>
+              </div>
+
+              {/* FILTER DROPDOWN */}
+              <div style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '8px' }}>Select Category</label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  style={{ width: '100%', maxWidth: '400px', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px' }}
+                >
+                  <option value="masterlist">Master List</option>
+                  <option value="age">List Based on Age</option>
+                  <option value="gender">Name List Based on Gender</option>
+                  <option value="barangay">Barangay Breakdown</option>
+                  <option value="children">List by Number of Children/Dependent</option>
+                  <option value="idstatus">Status of Solo Parent ID Card</option>
+                  <option value="category">Category of being Solo Parent</option>
+                </select>
+              </div>
+
+              {loadingSummary ? <p style={{ textAlign: 'center', padding: '40px' }}>Loading data...</p> : (
+                <>
+
+
+                  {/* DYNAMIC TABLE BASED ON DROPDOWN */}
+                  <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ fontWeight: '700', marginBottom: '16px' }}>
+                      {reportType === 'masterlist' && 'Master List'}
+                      {reportType === 'age' && 'List Based on Age'}
+                      {reportType === 'gender' && 'List Based on Gender'}
+                      {reportType === 'barangay' && 'Barangay Breakdown'}
+                      {reportType === 'children' && 'List by Number of Children'}
+                      {reportType === 'idstatus' && 'ID Card Status'}
+                      {reportType === 'category' && 'Category of Solo Parent'}
+                    </h3>
+
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc' }}>
+                          <tr>
+                            {reportType === 'masterlist' && <>
+                              <th style={thStyle}>Name</th><th style={thStyle}>Age</th><th style={thStyle}>Gender</th><th style={thStyle}>Barangay</th><th style={thStyle}>Contact</th><th style={thStyle}>Children</th><th style={thStyle}>Category</th>
+                            </>}
+                            {reportType === 'age' && <>
+                              <th style={thStyle}>Age Group</th><th style={thStyle}>Count</th>
+                            </>}
+                            {reportType === 'gender' && <>
+                              <th style={thStyle}>Name</th><th style={thStyle}>Gender</th><th style={thStyle}>Contact</th>
+                            </>}
+                            {reportType === 'barangay' && <>
+                              <th style={thStyle}>Barangay</th><th style={thStyle}>Count</th>
+                            </>}
+                            {reportType === 'children' && <>
+                              <th style={thStyle}>Name</th><th style={thStyle}>No. of Children</th>
+                            </>}
+                            {reportType === 'idstatus' && <>
+                              <th style={thStyle}>Name</th><th style={thStyle}>Registration Date</th><th style={thStyle}>ID Status</th>
+                            </>}
+                            {reportType === 'category' && <>
+                              <th style={thStyle}>Name</th><th style={thStyle}>Category Code</th><th style={thStyle}>Reason</th>
+                            </>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getTableData().map((row, index) => (
+                            <tr key={index} style={{ borderTop: '1px solid #e2e8f0' }}>
+                              {Object.values(row).map((cell, i) => <td key={i} style={tdStyle}>{cell}</td>)}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
