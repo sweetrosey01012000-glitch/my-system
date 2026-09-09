@@ -13,14 +13,16 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  // Redirect to login if there is no authenticated user
   if (!currentUser) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
-  // Redirect to home if the user's role is not in the allowed list
+  // Debug - makikita mo sa console kung bakit na-block
+  console.log("ProtectedRoute check:", { userRole, allowedRoles, isAllowed: allowedRoles?.includes(userRole) });
+
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+    console.warn(`Access denied: ${userRole} not in`, allowedRoles);
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;

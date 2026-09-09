@@ -4,7 +4,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
-
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -17,23 +16,24 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        
-        // Securely fetch role from Firestore, checking collections
         const collections = ['admin', 'staff', 'soloparent', 'pending_users', 'denied_users'];
         let foundData = null;
         let foundRole = null;
-
+        
         for (let col of collections) {
           const docRef = doc(db, col, user.uid);
           const docSnap = await getDoc(docRef);
-          
           if (docSnap.exists()) {
             foundData = docSnap.data();
-            foundRole = foundData.role;
+            foundData = { uid: user.uid, ...foundData };
+            foundRole = foundData.role || col;
+            // normalize - gawing lowercase lahat
+            if (foundRole === 'pending_users') foundRole = 'pending';
+            if (foundRole === 'denied_users') foundRole = 'denied';
+            console.log("FOUND IN:", col, "ROLE:", foundRole, "DATA:", foundData);
             break;
           }
         }
-
         setUserData(foundData);
         setUserRole(foundRole);
       } else {
@@ -43,17 +43,10 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
-  const value = {
-    currentUser,
-    userRole,
-    userData,
-    loading
-  };
-
+  const value = { currentUser, userRole, userData, loading };
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}

@@ -1,735 +1,154 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import PublicRegisterPage from './PublicRegisterPage';
+import { soloParentCategories } from '../../data/soloParentCategories';
 import LoginPage from './LoginPage';
-import { soloParentCategories } from './CategoriesPage';
+import PublicRegisterPage from './PublicRegisterPage';
 
-// ==========================================
-// FRONT PAGE NAV CONFIGURATION DATA (PLACEHOLDERS)
-// ==========================================
 const navConfig = {
+  home: { title: "Welcome", desc: "Welcome to Solo Parent System of Naic, Cavite. Empowering Solo Parents through support and benefits." },
   aboutUs: {
     whoWeAre: { title: "Who We Are", videoPlaceholder: "Video coming soon" },
     missionVision: { title: "Mission & Vision", textPlaceholder: "Mission and Vision content will be placed here." }
   },
   innovations: {
-    recentProjects: [
-      { title: "Project Title 1", desc: "Project description coming soon." },
-      { title: "Project Title 2", desc: "Project description coming soon." }
-    ],
+    recentProjects: [{ title: "Project Title 1", desc: "Project description coming soon." }, { title: "Project Title 2", desc: "Project description coming soon." }],
     techSolutions: { title: "Tech Solutions", textPlaceholder: "Tech Solutions content will be placed here." }
   },
-  programsAndServices: ["Program 1", "Program 2", "Program 3"],
-  categoriesAndCodes: [
-    {
-      code: "a1", title: "Birth of a Child",
-      documents: ["Birth certificate/s of the child or children.", "Complaint affidavit.", "Medical record on the incident of rape.",
-        "Sworn affidavit declaring that the solo parent has the sole parental care and support of the child or children at the time of the execution of affidavit: Provided, that for purposes of issuance of subsequent SPIC and booklet, only the sworn affidavit shall be submitted every year.",
-        "Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and the child or children is/are under the parental care and support of the solo parent.",
-        "Solo Parents Orientation Seminar Certificate of Attendance."]
-    },
-
-    {
-      code: "a2", title: "Widow/Widower",
-      documents: ['Birth certificate/s of the child or children.', 'Marriage certificate.', 'Death certificate of the spouse.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent, and has the sole parental care and support of the child or children: Provided, that for purposes of issuance of subsequent SPIC and booklet, only the sworn affidavit shall be submitted every year.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "a3", title: "Spouse of person deprived of liberty",
-      documents: ['Birth certificate/s of the child or children.', 'Marriage certificate.',
-        'Certificate of detention or a certification that the spouse is serving sentence for at least three (3) months issued by the law-enforcement agency having actual custody of the detained spouse or commitment order by the court pursuant to a conviction of the spouse.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent, and has the sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement numbers (3) and (4) under this paragraph shall be submitted every year.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "a4", title: "Spouse of person with physical or mental incapacity",
-      documents: ['Birth certificate/s of the child or children.', 'Marriage certificate or affidavit of cohabitation.',
-        'Medical records, medical abstract, or a certificate of confinement in the National Center for Mental Health or any medical hospital or facility as a result of the spouse\'s physical or mental incapacity, which record, medical abstract or certificate of confinement of the incapacitated spouse should have been issued not more than three (3) months before the submission, or a valid Person With Disability ID issued pursuant to Republic Act No. 10754 and Republic Act No. 7277, or the Magna Carta for Disabled Persons.',
-        'Sworn affidavit that the solo parent is not cohabiting with a partner or co-parent and has sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement numbers (3) and (4) under this paragraph shall be submitted every year.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "a5", title: "Due to legal separation or de facto separation",
-      documents: ['Birth certificate/s of the child or children.', 'Marriage certificate.',
-        'Judicial decree of legal separation of the spouses or, in the case of de facto separation, an affidavit of two (2) disinterested persons attesting to the fact of separation of the spouses.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent, and has sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement numbers (3) and (4) under this paragraph shall be submitted every year.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "a6", title: "Due to nullity or annulment of marriage",
-      documents: ['Birth certificate/s of the child or children.',
-        'Marriage certificate, annotated with the fact of declaration of nullity of marriage or annulment of marriage.',
-        'Judicial decree of nullity or annulment of marriage or judicial recognition of foreign divorce.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent and has sole parental care and support of the child or children: Provided, that for purposes of issuance of subsequent SPIC and booklet, only the sworn affidavit shall be submitted every year.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "a7", title: "Abandonment by the spouse",
-      documents: ['Birth certificate/s of the child or children.',
-        'Marriage certificates or affidavit of the applicant solo parent.',
-        'Affidavit of two (2) disinterested persons attesting to the fact of abandonment of the spouse.',
-        'Police or barangay record of the fact of abandonment.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent, and has sole parental care and support of the child or children: Provided, that for purposes of issuance of subsequent SPIC and booklet, only sworn affidavit shall be submitted every year, and.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "b1", title: "Spouse of OFW",
-      documents: ['Birth certificate/s of dependents.',
-        'Marriage certificate, if the applicant is the spouse of the OFW, or birth certificate or the other competent proof of the relationship between the applicant and the OFW, if the applicant is a family member of the OFW.',
-        'Philippine Overseas Employment Administration Standard Employment Contract (POEA-SEC) or its equivalent document.',
-        'Photocopy of the OFW\'s passport with stamps showing continuous twelve (12) months of overseas work, or a certification from the Bureau of Immigration.',
-        'Proof of income of the OFW\'s spouse or family member.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent and has sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement numbers (3), (4), (5), and (6) under this paragraph shall be submitted every year, and.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "c", title: "Unmarried person",
-      documents: ['Birth certificate/s of the child or children.',
-        'Certificate of No Marriage (CENOMAR).',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent and has sole parental care and support of the child or children: Provided, That for the purposes of issuance of subsequent SPIC and booklet, requirement numbers (2), (3) and (4) under this paragraph shall be submitted every year, and.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "d", title: "Legal guardian / Adoptive parent / Foster parent",
-      documents: ['Birth certificate/s of the child or children.',
-        'Proof of guardianship, such as the decision granting legal guardianship issued by a court; proof of adoption, such as the decree of adoption issued by a court, or order of Adoption issued by the DSWD or the National Authority on Child Care (NACC); proof of foster care such as the Foster Parent License issued by the DSWD or the NACC.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent and has sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement number (3) and (4) under this paragraph shall be submitted every year, and.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "e", title: "Relative within the fourth (4th) civil degree of consanguinity or affinity",
-      documents: ['Birth certificate/s of the child or children.',
-        'Death certificate, certificate of incapacity, or judicial declaration of absence or presumptive death of the parents or legal guardian; police or barangay records evidencing the fact of disappearance or absence of the parent or legal guardian for at least six (6) months.',
-        'Proof of relationship of the relative to the parent or legal guardian, such as birth certificate, marriage certificate, family records, or other similar or analogous proof of relationship.',
-        'Sworn affidavit declaring that the solo parent has sole parental care and support of the child or children: Provided, That for purposes of issuance of subsequent SPIC and booklet, requirement numbers (3) and (4) under this paragraph shall be submitted every year, and.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay and that the child or children is/are under the parental care and support of the solo parent, and.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    },
-
-    {
-      code: "f", title: "Pegnant woman", documents: ['Medical record of her pregnancy.',
-        'Affidavit of a barangay official attesting that the solo parent is a resident of the barangay, and.',
-        'Sworn affidavit declaring that the solo parent is not cohabiting with a partner or co-parent who is providing support to the pregnant woman.',
-        'Solo Parents Orientation Seminar Certificate of Attendance.']
-    }
-
-  ],
-  contactUs: {
-    address: "Address: Naic, Cavite",
-    phone: "Phone: (046) 890 2435",
-    email: "Email: dswdnaiccavite@yahoo.com"
-  }
+  programsAndServices: [], // TINANGGAL LAMAN - COMING SOON
+  categoriesAndCodes: soloParentCategories,
+  contactUs: { address: "Address: Naic, Cavite", phone: "Phone: (046) 890 2435", email: "Email: dswdnaiccavite@yahoo.com" }
 };
 
-// ==========================================
-// FRONT PAGE HERO CONFIGURATION DATA
-// ==========================================
 const heroConfig = {
-  backgroundImages: [
-    "/vids/pic1.jpg",
-    "/vids/pic2.jpg",
-    "/vids/pic3.jpg",
-    "/vids/pic4.jpg"
-  ],
-  posterImg: "/vids/soloparent-logo.png",
-  title: "",
-  subtitle: ""
+  backgroundImages: ["/vids/pic1.jpg", "/vids/pic2.jpg", "/vids/pic3.jpg", "/vids/pic4.jpg"],
+  posterImg: "/vids/soloparent-logo.png"
 };
 
-// ==========================================
-// LANDING PAGE COMPONENT
-// ==========================================
 function LandingPage() {
   const navigate = useNavigate();
   const { userRole, userData } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
-
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroConfig.backgroundImages.length);
-    }, 4000); // 4 seconds bawat image
-    return () => clearInterval(interval);
-  }, []);
-
   const [showDropdown, setShowDropdown] = useState(null);
   const [expandedCode, setExpandedCode] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Hero Modal & Login States
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-
-  // Securely redirect based on AuthContext state
   useEffect(() => {
-    if (userRole && userData) {
-      if (userRole === 'admin') navigate('/admin');
-      else if (userRole === 'staff') navigate('/staff');
-      else if (userRole === 'soloparent') {
-        if (userData.status === 'pending' || userData.status === 'denied') navigate('/status');
-        else navigate('/soloparent');
-      } else navigate('/unauthorized');
-    }
-  }, [userRole, userData, navigate]);
+    const i = setInterval(()=> setCurrentSlide(p=>(p+1)%heroConfig.backgroundImages.length),4000);
+    return()=>clearInterval(i);
+  },[]);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error('Error during login:', error);
-      alert('Invalid credentials. Please try again.');
-    }
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    alert("Register clicked! Email: " + email); // pang test muna
-    setShowRegisterModal(false);
-  };
-
-  const handleForgotPassword = async () => {
-    const resetEmail = window.prompt("Please enter your email address to reset your password:", email);
-    if (!resetEmail) return;
-    try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      alert(`Password reset email sent to ${resetEmail}! Please check your inbox.`);
-    } catch (error) {
-      console.error("Error sending reset email:", error);
-      alert("Failed to send reset email: " + error.message);
-    }
-  };
-
-  const toggleDropdown = (menuName) => {
-    if (showDropdown === menuName) {
-      setShowDropdown(null);
+  useEffect(()=>{
+    if(showLoginModal || showRegisterModal){
+      document.body.style.overflow='hidden';
+      document.documentElement.style.overflow='hidden';
     } else {
-      setShowDropdown(menuName);
-      setExpandedCode(null);
+      document.body.style.overflow='';
+      document.documentElement.style.overflow='';
     }
-  };
+    return()=>{document.body.style.overflow=''; document.documentElement.style.overflow='';}
+  },[showLoginModal, showRegisterModal]);
+
+  useEffect(()=>{
+    if(userRole&&userData){
+      if(userRole==='admin')navigate('/admin');
+      else if(userRole==='staff')navigate('/staff');
+      else if(userRole==='soloparent'){
+        if(userData.status==='pending'||userData.status==='denied')navigate('/status');
+        else navigate('/soloparent');
+      }
+    }
+  },[userRole,userData,navigate]);
+
+  const toggle = (name) => setShowDropdown(showDropdown===name?null:name);
 
   const styles = {
-    body: { fontFamily: 'Poppins, sans-serif', background: '#f4f7fc', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'auto' },
-    header: { background: '#ffffff', padding: '15px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderBottom: '4px solid #fbbf24', position: 'relative', zIndex: 10, flexWrap: 'wrap', flexDirection: 'row' },
-    logoTitle: { color: '#1e3a8a', margin: 0, fontSize: '24px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 'max-content' },
-    navContainer: { display: 'flex', gap: '35px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', flex: 1, flexDirection: 'row', position: 'relative' },
-    hamburgerBtn: {
-      display: 'none',
-      background: 'none',
-      border: 'none',
-      fontSize: '32px', /* ginawang mas malaki */
-      color: '#1e3a8a', /* blue para kita sa white header */
-      cursor: 'pointer',
-      padding: '5px 10px',
-      marginLeft: 'auto' /* para pumunta sa pinaka kanan */
-    },
-    navLinksMobileShow: { display: 'flex' },
-    mobileMenuBtn: { display: 'none', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#1e3a8' },
-    navItem: { position: 'relative', cursor: 'pointer', color: '#1e3a8a', fontWeight: 'bold', fontSize: '14px', padding: '10px 12px', userSelect: 'none' },
-    dropdownMenu: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '250px', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', scrollbarWidth: 'none', zIndex: 1000, whiteSpace: 'normal' },
-    dropdownMenuRight: { position: 'absolute', top: '100%', right: '0', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', width: 'auto', minWidth: '500px', maxWidth: '90vw', zIndex: 1000, whiteSpace: 'normal' },
-    dropdownMenuRightWide: { position: 'absolute', top: '100%', right: '0', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 0', width: 'auto', minWidth: '850px', maxWidth: '95vw', maxHeight: '70vh', overflowY: 'auto', zIndex: 1000, whiteSpace: 'normal' },
-    dropdownMenuCentered: { position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: '#1e3a8a', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', padding: '15px 20px', minWidth: '280px', zIndex: 1000, whiteSpace: 'normal' },
-    cardContainer: { display: 'grid', gridTemplateColumns: '1fr 1fr' },
-    dropdownSection: { padding: '15px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#ffffff' },
-    videoPlaceholder: { background: '#94a3b8', height: '120px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e293b', fontSize: '14px', marginTop: '10px', fontWeight: 'bold' },
-    placeholderText: { fontSize: '13px', margin: '5px 0 0 0', color: '#cbd5e1' },
-    imageCardPlaceholder: { background: '#f1f5f9', padding: '15px', borderRadius: '6px', color: '#334155' },
-    eventCard: { background: 'rgba(255,255,255,0.1)', padding: '15px', margin: '10px 15px', borderRadius: '6px', color: '#fffff' },
-    dropdownItem: { padding: '12px 20px', color: '#ffffff', fontSize: '14px', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', textAlign: 'left', whiteSpace: 'normal', wordWrap: 'break-word' },
-    accordionContent: { marginTop: '12px', padding: '15px', background: 'rgba(0,0,0,0.3)', borderRadius: '6px', borderLeft: '3px solid #fbbf24' },
-    navButtons: { display: 'flex', gap: '10px', minWidth: 'max-content' },
-    navItemWhite: { color: '#fff', fontSize: '15px', fontWeight: '700', cursor: 'pointer', position: 'relative', padding: '15px 20px', transition: 'opacity 0.2s', display: 'block' },
-    main: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0', zIndex: 1, position: 'relative' },
-    heroTitle: { color: '#1e3a8a', fontSize: '48px', fontWeight: '900', marginBottom: '20px' },
-    heroSub: { color: '#475569', fontSize: '18px', maxWidth: '600px', marginBottom: '40px', lineHeight: '1.6' },
-    btnGroup: { display: 'flex', gap: '20px', justifyContent: 'center' },
-    btnPrimary: { background: '#fbbf24', color: '#1e3a8a', padding: '15px 40px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '18px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-    btnSecondary: { background: '#ffffff', color: '#1e3a8a', padding: '15px 40px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', border: '2px solid #1e3a8a', cursor: 'pointer', fontSize: '18px' },
-    infoBox: { background: '#f8fafc', padding: '20px', borderRadius: '12px', borderLeft: '5px solid #fbbf24', margin: '10px', textAlign: 'left', color: '#334155', fontSize: '14px', lineHeight: '1.6' }
+    body: { fontFamily:'"Segoe UI", Arial, sans-serif', height:'100vh', display:'flex', flexDirection:'column', overflow:'hidden', background:'#fff' },
+    headerTop: { background:'#1E3A8A', padding:'10px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'3px solid #FBBF24' },
+    navBar: { background:'#fff', padding:'12px 20px', display:'flex', justifyContent:'center', gap:'42px', borderBottom:'2px solid #FBBF24', flexWrap:'wrap' },
+    navItem: { position:'relative', cursor:'pointer', color:'#1E3A8A', fontWeight:'700', fontSize:'12px', padding:'8px 4px', textTransform:'uppercase', letterSpacing:'0.3px' },
+    dropdown: { position:'absolute', top:'100%', left:'0', background:'#1E3A8A', borderRadius:'10px', boxShadow:'0 12px 30px rgba(0,0,0,0.35)', padding:'14px', width:'340px', maxWidth:'calc(100vw - 24px)', zIndex:999, marginTop:'12px', border:'2px solid #FBBF24', boxSizing:'border-box' },
+    dropdownWide: { position:'absolute', top:'100%', left:'0', background:'#1E3A8A', borderRadius:'10px', boxShadow:'0 12px 30px rgba(0,0,0,0.35)', padding:'12px', width:'460px', maxWidth:'calc(100vw - 20px)', maxHeight:'68vh', overflowY:'auto', zIndex:999, marginTop:'12px', border:'2px solid #FBBF24', boxSizing:'border-box' },
+    dropdownRight: { position:'absolute', top:'100%', right:'0', left:'auto', background:'#1E3A8A', borderRadius:'10px', boxShadow:'0 12px 30px rgba(0,0,0,0.35)', padding:'12px', width:'460px', maxWidth:'calc(100vw - 20px)', maxHeight:'68vh', overflowY:'auto', zIndex:999, marginTop:'12px', border:'2px solid #FBBF24', boxSizing:'border-box' },
+    heroWrap: { flex:1, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' },
   };
 
   return (
-    <div style={styles.body} className="anim-fade-in landing-page-wrapper">
-      
+    <div style={styles.body} onClick={()=>setShowDropdown(null)}>
       <style>{`
-      /* ===== MOBILE RESPONSIVE FIX - ISA LANG DAPAT ===== */
-      @media (max-width: 900px) {
-        body { overflow-x: hidden !important; }
-        
-        .main-header { 
-          flex-direction: row !important; 
-          justify-content: space-between !important;
-          padding: 8px 10px !important; /* NILIITAN */
-          align-items: center !important; 
-          gap: 6px !important; 
-          position: relative !important;
-          z-index: 1001 !important;
-          background: #fff !important;
+        @media (max-width: 1100px) {.nav-bar { gap: 28px!important; } }
+        @media (max-width: 900px) {
+        .nav-bar { display: ${isMobileMenuOpen? 'flex' : 'none'}!important; flex-direction: column!important; align-items: stretch!important; gap:0!important; padding: 0 12px 10px!important; background: #f8fafc!important; }
+        .nav-item { width: 100%; padding: 14px 0!important; border-bottom: 1px solid #e2e8f0; font-size: 12px!important; }
+        .drop { position: static!important; width: 100%!important; max-width: 100%!important; margin-top: 10px!important; }
+        .mobile-toggle { display: block!important; }
+        .desktop-auth { display: none!important; }
+        .mobile-hero-auth { display: flex!important; }
         }
-        .main-header img { width: 45px !important; height: 45px !important; } /* NILIITAN LOGO */
-  
-        /* LIITAN YUNG FONT SA HEADER */
-        .logoTitle h3 { font-size: 13px !important; margin: 0 !important; }
-        .logoTitle p:nth-of-type(1) { font-size: 8px !important; margin: 0 !important; }
-        .logoTitle p:nth-of-type(2) { font-size: 7px !important; margin: 0 !important; }
-  
-        /* PAGKASYAHIN YUNG KAN */
-        .headerRight {
-          display: flex !important;
-          align-items: center !important;
-          gap: 5px !important;
+        @media (min-width: 901px) {
+        .mobile-toggle { display: none!important; }
+        .mobile-hero-auth { display: none!important; }
         }
-        .navButtons { 
-          display: flex !important; /* PINAKITA ULIT SA HEADER */
-          gap: 5px !important;
-        }
-        .navButtons button {
-          padding: 5px 7px !important;
-          font-size: 10px !important;
-          font-weight: 700 !important;
-        }
-  
-        .hamburgerBtn { 
-          display: block !important; 
-          font-size: 24px !important; /* NILIITAN */
-          color: #1e3a8a !important; 
-          z-index: 1002 !important; 
-          background: none; 
-          border: none;
-          cursor: pointer;
-          padding: 0 3px;
-        }
-  
-        .main-nav { 
-          display: none !important; 
-          flex-direction: column !important; 
-          position: absolute;
-          top: 100%; 
-          left: 0; 
-          width: 100%; 
-          padding: 0 !important; 
-          gap: 0 !important; 
-          z-index: 1000; /* TATAKIP SA PICTURE */
-          background: linear-gradient(90deg, #1e40af 0%, #2563eb 100%); 
-          box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        .main-nav.showMobile { display: flex !important; }
-        
-        .main-nav .nav-item { 
-          width: 100%; 
-          text-align: center; 
-          font-size: 15px !important; 
-          padding: 14px 10px !important; 
-          border-bottom: 1px solid rgba(255,255,255,0.1); 
-          color: white !important; 
-          cursor: pointer;
-        }
-        .nav-item-dropdown { position: relative !important; top: 0 !important; left: 0 !important; width: 100% !important; border-radius: 0 !important; }
-        .banner-img { width: 100% !important; height: 220px !important; object-fit: cover !important; object-position: center top !important; }
-      }
+       .drop-wide::-webkit-scrollbar { width: 4px; }
+       .drop-wide::-webkit-scrollbar-thumb { background: #FBBF24; border-radius: 10px; }
       `}</style>
-  
-       {/* ===== HEADER PUTI ===== */}
-  <header className="main-header" style={{ background: '#ffffff', padding: '12px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'relative', }}>
-    
-    {/* KALIWA: Logo + Text */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <img src={heroConfig.posterImg} alt="Solo Parent Logo" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
-      <div>
-        <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: '900' }}>SOLO PARENT SYSTEM</h3>
-        <p style={{ margin: 0, color: '#b45309', fontSize: '11px', fontWeight: '700' }}>DEPARTMENT OF SOCIAL WELFARE AND DEVELOPMENT</p>
-        <p style={{ margin: 0, color: '#64748b', fontSize: '10px' }}>Republic of the Philippines</p>
-      </div>
-    </div>
 
-    {/* HAMBURGER BUTTON */}
-    <button className="hamburgerBtn" style={styles.hamburgerBtn} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-      ☰
-    </button>
-
-    {/* KAN: Buttons lang */}
-    <div className="navButtons" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <button style={{ padding: '8px 18px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff', color: '#1e3a8a', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }} onClick={() => setShowLoginModal(true)}>
-        Log In
-      </button>
-      <button style={{ padding: '8px 18px', border: 'none', borderRadius: '6px', background: '#d97706', color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }} onClick={() => setShowRegisterModal(true)}>
-        Register
-      </button>
-    </div>
-  </header>
-
-  {/* ===== NAV BLUE - ISA LANG DAPAT TO ===== */}
-  <nav 
-    className={`main-nav ${isMobileMenuOpen ? 'showMobile' : ''}`} 
-    style={{ 
-      background: 'linear-gradient(90deg, #1e40af 0%, #2563eb 100%)', 
-      padding: '0 20px', 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      height: '50px', 
-      position: 'relative', // desktop
-      zIndex: 50, 
-    }} 
-    onClick={() => setShowDropdown(null)}
-  >
-        <div className="nav-item" style={styles.navItemWhite} onClick={() => navigate('/')}>
-          Home
+      <header style={styles.headerTop} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+          <img src={heroConfig.posterImg} alt="" style={{width:'38px', height:'38px', background:'#fff', padding:'2px', borderRadius:'6px'}}/>
+          <div><h1 style={{color:'#FBBF24', margin:0, fontSize:'14px', fontWeight:'900'}}>SOLO PARENT SYSTEM</h1><p style={{color:'#fff', fontSize:'8px', margin:0}}>DSWD - NAIC, CAVITE</p></div>
         </div>
-
-        <div className="nav-item" style={styles.navItemWhite} onClick={(e) => { e.stopPropagation(); toggleDropdown('about') }}>
-          About Us ▼
-          {showDropdown === 'about' && (
-            <div style={styles.dropdownMenu} className="anim-slide-up nav-item-dropdown" onClick={(e) => e.stopPropagation()}>
-              <div style={styles.dropdownSection}>
-                <strong>{navConfig.aboutUs.whoWeAre.title}</strong>
-                <div style={styles.videoPlaceholder}>{navConfig.aboutUs.whoWeAre.videoPlaceholder}</div>
-              </div>
-              <div style={styles.dropdownSection}>
-                <strong>{navConfig.aboutUs.missionVision.title}</strong>
-                <p style={styles.placeholderText}>{navConfig.aboutUs.missionVision.textPlaceholder}</p>
-              </div>
-            </div>
-          )}
+        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+          <div className="desktop-auth" style={{display:'flex', gap:'8px'}}>
+            <button style={{background:'transparent', color:'#fff', padding:'6px 14px', borderRadius:'5px', border:'1.5px solid #fff', fontWeight:'800', fontSize:'11px', cursor:'pointer'}} onClick={()=>setShowLoginModal(true)}>LOG IN</button>
+            <button style={{background:'#FBBF24', color:'#1E3A8A', padding:'6px 16px', borderRadius:'5px', border:'none', fontWeight:'800', fontSize:'11px', cursor:'pointer'}} onClick={()=>setShowRegisterModal(true)}>REGISTER</button>
+          </div>
+          <button className="mobile-toggle" onClick={()=>setIsMobileMenuOpen(!isMobileMenuOpen)} style={{background:'#FBBF24', color:'#1E3A8A', border:'none', borderRadius:'6px', padding:'6px 12px', fontWeight:'900'}}>{isMobileMenuOpen?'✕':'☰'}</button>
         </div>
+      </header>
 
-        <div className="nav-item" style={styles.navItemWhite} onClick={(e) => { e.stopPropagation(); toggleDropdown('innovations') }}>
-          Innovations ▼
-          {showDropdown === 'innovations' && (
-            <div style={styles.dropdownMenu} className="anim-slide-up nav-item-dropdown" onClick={(e) => e.stopPropagation()}>
-              <div style={styles.dropdownSection}>
-                <strong>{navConfig.innovations.techSolutions.title}</strong>
-                <p style={styles.placeholderText}>{navConfig.innovations.techSolutions.textPlaceholder}</p>
-              </div>
-              <div style={styles.dropdownSection}>
-                <strong>Recent Projects</strong>
-                <div style={styles.cardContainer}>
-                  {navConfig.innovations.recentProjects.map((proj, i) => (
-                    <div key={i} style={styles.imageCardPlaceholder}>
-                      <strong>{proj.title}</strong>
-                      <p>{proj.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="nav-item" style={styles.navItemWhite} onClick={(e) => { e.stopPropagation(); toggleDropdown('programs') }}>
-          Programs and Services ▼
-          {showDropdown === 'programs' && (
-            <div style={styles.dropdownMenu} className="anim-slide-up nav-item-dropdown" onClick={(e) => e.stopPropagation()}>
-              {navConfig.programsAndServices.map((prog, i) => (
-                <div key={i} style={styles.dropdownItem}>{prog}</div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="nav-item" style={styles.navItemWhite} onClick={(e) => { e.stopPropagation(); toggleDropdown('categories') }}>
-          Categories and Codes ▼
-          {showDropdown === 'categories' && (
-            <div style={styles.dropdownMenuRightWide} className="anim-slide-up nav-item-dropdown" onClick={(e) => e.stopPropagation()}>
-              {navConfig.categoriesAndCodes.map((cat, i) => (
-                <div key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  {/* ROW */}
-                  <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
-                    <div onClick={() => setExpandedCode(expandedCode === cat.code ? null : cat.code)} style={{ cursor: 'pointer', fontWeight: 'bold', display: 'flex', gap: '15px', flex: 1 }}>
-                      <span style={{ minWidth: '100px', flexShrink: 0 }}>Code {cat.code.toUpperCase()}</span>
-                      <span style={{ flex: 1 }}>- {cat.title}</span>
-                    </div>
-                    <span style={{ fontSize: '16px', flexShrink: 0 }}>{expandedCode === cat.code ? '−' : '+'}</span>
-                  </div>
-
-                  {/* ACCORDION - NILABAS KO NA DITO */}
-                  {expandedCode === cat.code && (
-                    <div style={{ ...styles.accordionContent, margin: '0 20px 15px 20px' }}>
-                      <div style={{ fontSize: '12px', marginBottom: '5px', color: '#fbbf24', fontWeight: 'bold' }}>Required Documents:</div>
-                      {cat.documents.map((doc, j) => (<div key={j} style={{ fontSize: '12px', marginLeft: '10px', marginBottom: '4px' }}>• {doc}</div>))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="nav-item" style={styles.navItemWhite} onClick={(e) => { e.stopPropagation(); toggleDropdown('contact') }}>
-          Contact Us ▼
-          {showDropdown === 'contact' && (
-            <div style={{ ...styles.dropdownMenuRight, minWidth: '200px' }} className="anim-slide-up nav-item-dropdown" onClick={(e) => e.stopPropagation()}>
-              <div style={styles.dropdownSection}>
-                <strong>{navConfig.contactUs.address}</strong>
-                <p style={styles.placeholderText}>{navConfig.contactUs.phone}</p>
-                <p style={styles.placeholderText}>{navConfig.contactUs.email}</p>
-              </div>
-            </div>
-          )}
-        </div>
+      <nav style={styles.navBar} className="nav-bar" onClick={e=>e.stopPropagation()}>
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('home')}>Home ▼{showDropdown==='home'&&<div style={styles.dropdown} className="drop"><p style={{color:'#e0e7ff', fontSize:'10px', whiteSpace:'normal', wordBreak:'break-word', lineHeight:'1.5'}}>{navConfig.home.desc}</p></div>}</div>
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('about')}>About Us ▼{showDropdown==='about'&&<div style={styles.dropdown} className="drop"><div style={{color:'#fff', marginBottom:'10px'}}><strong style={{color:'#FBBF24', fontSize:'11px'}}>WHO WE ARE</strong><div style={{background:'#e2e8f0', height:'70px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', color:'#334155', fontSize:'10px', marginTop:'6px'}}>Video coming soon</div></div><div style={{color:'#fff'}}><strong style={{color:'#FBBF24', fontSize:'11px'}}>MISSION & VISION</strong><p style={{fontSize:'10px', color:'#e0e7ff', marginTop:'4px', whiteSpace:'normal', lineHeight:'1.4'}}>{navConfig.aboutUs.missionVision.textPlaceholder}</p></div></div>}</div>
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('innov')}>Innovations ▼{showDropdown==='innov'&&<div style={styles.dropdownWide} className="drop drop-wide"><p style={{color:'#FBBF24', fontSize:'10px', fontWeight:'800'}}>RECENT PROJECTS</p>{navConfig.innovations.recentProjects.map((p,i)=><div key={i} style={{background:'#fff', padding:'7px 8px', borderRadius:'5px', marginTop:'5px', borderLeft:'3px solid #FBBF24'}}><b style={{fontSize:'10px', color:'#1e3a8a', display:'block', whiteSpace:'normal'}}>{p.title}</b><p style={{fontSize:'9px', color:'#475569', whiteSpace:'normal', margin:'2px 0 0'}}>{p.desc}</p></div>)}</div>}</div>
+        {/* PROGRAMS - WALANG LAMAN */}
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('programs')}>Programs and Services ▼{showDropdown==='programs'&&<div style={styles.dropdown} className="drop"><p style={{color:'#FBBF24', fontSize:'10px', fontWeight:'800', margin:'0 0 8px'}}>PROGRAMS & SERVICES</p><div style={{background:'rgba(255,255,255,0.08)', borderRadius:'8px', padding:'16px', textAlign:'center', border:'1.5px dashed rgba(251,191,36,0.4)'}}><p style={{color:'#94a3b8', fontSize:'11px', margin:0, fontStyle:'italic'}}>Content coming soon</p><p style={{color:'#64748b', fontSize:'9px', margin:'6px 0 0'}}>Programs will be added soon.</p></div></div>}</div>
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('categories')}>Categories and Codes ▼ {showDropdown==='categories' && ( <div style={styles.dropdownRight} className="drop drop-wide"> {navConfig.categoriesAndCodes.map((cat,i)=>( <div key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.1)', padding:'6px 0'}}> <div onClick={(e)=>{e.stopPropagation(); setExpandedCode(expandedCode===String(cat.code).toLowerCase()?null:String(cat.code).toLowerCase())}} style={{display:'flex', justifyContent:'space-between', gap:'8px', cursor:'pointer', alignItems:'center'}}> <div style={{display:'flex', gap:'6px', flex:1, minWidth:0, alignItems:'center'}}> <span style={{background:'#FBBF24', color:'#1E3A8A', padding:'2px 6px', borderRadius:'3px', fontSize:'9px', fontWeight:'900', flexShrink:0, textTransform:'lowercase'}}>{String(cat.code).toLowerCase()}</span> <span style={{color:'#fff', fontSize:'10px', fontWeight:'600', whiteSpace:'normal', wordBreak:'break-word', lineHeight:'1.3', flex:1}}>{cat.title}</span> </div> <span style={{color:'#FBBF24', fontSize:'14px', flexShrink:0}}>{expandedCode===String(cat.code).toLowerCase()? '−':'+'}</span> </div> {expandedCode===String(cat.code).toLowerCase() && ( <div style={{marginTop:'6px', background:'rgba(0,0,0,0.3)', padding:'8px', borderRadius:'5px', border:'1px solid rgba(251,191,36,0.25)'}}> {(cat.documents||cat.requirements||[]).map((d,j)=>( <div key={j} style={{fontSize:'9px', color:'#dbeafe', marginBottom:'5px', display:'flex', gap:'5px', lineHeight:'1.4', whiteSpace:'normal', wordBreak:'break-word', overflowWrap:'anywhere'}}> <span style={{color:'#FBBF24', flexShrink:0}}>•</span><span style={{flex:1}}>{d}</span> </div> ))} </div> )} </div> ))} </div> )} </div>
+        <div style={styles.navItem} className="nav-item" onClick={()=>toggle('contact')}>Contact Us ▼{showDropdown==='contact'&&<div style={styles.dropdownRight} className="drop"><div style={{color:'#dbeafe', fontSize:'10px', whiteSpace:'normal', lineHeight:'1.5'}}><p style={{color:'#FBBF24', fontWeight:'800'}}>{navConfig.contactUs.address}</p><p>{navConfig.contactUs.phone}</p><p>{navConfig.contactUs.email}</p></div></div>}</div>
       </nav>
 
-      <main style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
-
-        {/* HERO SECTION */}
-        <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
-          {heroConfig.backgroundImages.map((img, index) => (
-            <img
-              key={index}
-              className="banner-img"
-              src={img}
-              alt={`Slide ${index + 1}`}
-              style={{
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                objectFit: 'cover',
-                opacity: index === currentSlide ? 1 : 0,
-                transition: 'opacity 1s ease-in-out'
-              }}
-            />
-          ))}
+      <div style={styles.heroWrap}>
+        {heroConfig.backgroundImages.map((img, idx)=><img key={idx} src={img} alt="" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity: idx===currentSlide?1:0, transition:'opacity 1s'}}/>)}
+        <div style={{position:'absolute', inset:0, background:'rgba(30,58,138,0.35)'}}></div>
+        <div className="mobile-hero-auth" style={{display:'none', position:'relative', zIndex:2, flexDirection:'column', width:'88%', maxWidth:'300px'}}>
+          <div style={{background:'rgba(255,255,255,0.96)', padding:'18px', borderRadius:'14px', border:'2px solid #FBBF24', textAlign:'center'}}>
+            <h2 style={{margin:'0 0 4px', color:'#1E3A8A', fontSize:'16px', fontWeight:'900'}}>Solo Parent System</h2>
+            <p style={{margin:'0 0 12px', color:'#64748b', fontSize:'11px'}}>Support. Benefits. Community.</p>
+            <div style={{display:'flex', gap:'8px'}}>
+              <button style={{flex:1, background:'#1E3A8A', color:'#fff', padding:'11px', borderRadius:'8px', border:'none', fontWeight:'800', fontSize:'12px'}} onClick={()=>setShowLoginModal(true)}>LOG IN</button>
+              <button style={{flex:1, background:'#FBBF24', color:'#1E3A8A', padding:'11px', borderRadius:'8px', border:'none', fontWeight:'800', fontSize:'12px'}} onClick={()=>setShowRegisterModal(true)}>REGISTER</button>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
 
       {showLoginModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: '20px'
-        }} onClick={() => setShowLoginModal(false)}>
-
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)', // WHITE GLASS NA
-            backdropFilter: 'blur(25px)',
-            borderRadius: '24px',
-            padding: '45px 40px',
-            width: '100%',
-            maxWidth: '440px',
-            boxShadow: '0 25px 70px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(37, 99, 235, 0.2)', // blue border
-            position: 'relative'
-          }} onClick={(e) => e.stopPropagation()}>
-
-            {/* CLOSE BUTTON */}
-            <button style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(0,0,0,0.05)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '36px',
-              height: '36px',
-              cursor: 'pointer',
-              color: '#1e40af', // BLUE
-              fontSize: '20px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s'
-            }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
-              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-              onClick={() => setShowLoginModal(false)}>✕</button>
-
-            {/* TITLE */}
-            <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-              <h2 style={{
-                color: '#1e40af', // BLUE
-                fontSize: '32px',
-                fontWeight: '800',
-                marginBottom: '8px'
-              }}>Welcome Back</h2>
-            </div>
-
-            <form onSubmit={handleLogin}>
-              {/* EMAIL - FLOATING LABEL */}
-              <div style={{ marginBottom: '22px', position: 'relative' }}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '18px 18px 10px 18px',
-                    borderRadius: '14px',
-                    border: '2px solid #e2e8f0',
-                    fontSize: '15px',
-                    outline: 'none',
-                    background: '#f8fafc',
-                    color: '#1e293b', // BLACK TEXT
-                    transition: 'all 0.3s'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff' }}
-                  onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc' }}
-                />
-                <label style={{
-                  position: 'absolute',
-                  left: '18px',
-                  top: email ? '8px' : '50%', // aakyat pag may laman
-                  transform: email ? 'translateY(0)' : 'translateY(-50%)',
-                  fontSize: email ? '12px' : '15px',
-                  color: email ? '#2563eb' : '#64748b',
-                  fontWeight: '600',
-                  pointerEvents: 'none',
-                  transition: 'all 0.2s ease'
-                }}>
-                  Email Address
-                </label>
-              </div>
-
-              {/* PASSWORD - FLOATING LABEL */}
-              <div style={{ marginBottom: '12px', position: 'relative' }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '18px 50px 10px 18px',
-                    borderRadius: '14px',
-                    border: '2px solid #e2e8f0',
-                    fontSize: '15px',
-                    outline: 'none',
-                    background: '#f8fafc',
-                    color: '#1e293b'
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff' }}
-                  onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc' }}
-                />
-                <label style={{
-                  position: 'absolute',
-                  left: '18px',
-                  top: password ? '8px' : '50%',
-                  transform: password ? 'translateY(0)' : 'translateY(-50%)',
-                  fontSize: password ? '12px' : '15px',
-                  color: password ? '#2563eb' : '#64748b',
-                  fontWeight: '600',
-                  pointerEvents: 'none',
-                  transition: 'all 0.2s ease'
-                }}>
-                  Password
-                </label>
-
-                {/* EYE ICON */}
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '16px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    cursor: 'pointer',
-                    fontSize: '22px',
-                    userSelect: 'none',
-                    transition: 'transform 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(-50%) scale(1)'}
-                >
-                  {showPassword ? '👁️' : '🙈'}
-                </span>
-
-                <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '14px', color: '#2563eb', cursor: 'pointer', fontWeight: '600' }} onClick={handleForgotPassword}>
-                  Forgot Password?
-                </div>
-              </div>
-
-              {/* BUTTON - YELLOW WITH HOVER */}
-              <button type="submit" style={{
-                background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)', // YELLOW
-                color: '#1e40af', // BLUE TEXT
-                padding: '16px',
-                border: 'none',
-                borderRadius: '14px',
-                fontSize: '17px',
-                fontWeight: '800',
-                cursor: 'pointer',
-                width: '100%',
-                marginTop: '20px',
-                boxShadow: '0 8px 25px rgba(251,191,36,0.4)',
-                transition: 'all 0.2s'
-              }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 30px rgba(251,191,36,0.5)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(251,191,36,0.4)';
-                }}>
-                Login
-              </button>
-
-              <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
-                No account? <span style={{ color: '#2563eb', fontWeight: '700', cursor: 'pointer' }} onClick={() => { setShowLoginModal(false); setShowRegisterModal(true); }}>Register here</span>
-              </div>
-            </form>
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px'}} onClick={()=>setShowLoginModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%', maxWidth:'400px'}}>
+            <LoginPage onClose={()=>setShowLoginModal(false)} setShowRegisterModal={()=>{setShowLoginModal(false); setShowRegisterModal(true);}} />
           </div>
         </div>
       )}
 
       {showRegisterModal && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', zIndex: 9999, // GINAWANG 9999
-            display: 'flex', justifyContent: 'center', alignItems: 'center', // CENTER NA
-            padding: '20px', overflowY: 'auto'
-          }}
-          onClick={() => setShowRegisterModal(false)}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '550px',
-              maxHeight: '90vh', // PARA SCROLLABLE PAG MAHABA
-              overflowY: 'auto',
-              background: '#fff', // PARA MAY PUTING BOX
-              borderRadius: '12px'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <PublicRegisterPage onClose={() => setShowRegisterModal(false)} /> {/* DAGDAG ONCLOSE */}
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px', overflowY:'auto'}} onClick={()=>setShowRegisterModal(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%', maxWidth:'760px', maxHeight:'90vh', overflowY:'auto', background:'#fff', borderRadius:'20px'}}>
+            <PublicRegisterPage isModal={true} onClose={()=>setShowRegisterModal(false)} onSwitchToLogin={()=>{setShowRegisterModal(false); setShowLoginModal(true);}} />
           </div>
         </div>
-      )} {/* <-- ITO YUNG KULANG SAYO */}
-
+      )}
     </div>
   );
 }
