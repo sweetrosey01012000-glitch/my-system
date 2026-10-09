@@ -6,23 +6,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userRole, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Arial' }}>
-        Loading securely...
-      </div>
-    );
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading securely...</div>;
   }
 
   if (!currentUser) {
     return <Navigate to="/" replace />;
   }
 
-  // Debug - makikita mo sa console kung bakit na-block
-  console.log("ProtectedRoute check:", { userRole, allowedRoles, isAllowed: allowedRoles?.includes(userRole) });
+  // NORMALIZE: staff -> MSWD Staff para di na mag-error
+  const normalizedRole = userRole === 'staff' ? 'MSWD Staff' : userRole;
+  const normalizedAllowed = allowedRoles?.map(r => r === 'staff' ? 'MSWD Staff' : r);
 
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    console.warn(`Access denied: ${userRole} not in`, allowedRoles);
-    return <Navigate to="/unauthorized" replace />;
+  if (allowedRoles && !normalizedAllowed.includes(normalizedRole)) {
+    console.warn(`Blocked: ${userRole} not allowed`);
+    return <Navigate to="/" replace />; // Stay sa homepage, hindi na sa /unauthorized
   }
 
   return children;
